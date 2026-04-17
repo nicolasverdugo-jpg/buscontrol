@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BusControl — Sistema de Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ── RESET & VARIABLES ── */
+:root{
+  --bg:#0c0f18;--bg2:#131825;--bg3:#1a2133;--bg4:#212840;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --text:#e6e9f4;--text2:#8891aa;--text3:#50596e;
+  --accent:#2f72ff;--accent2:#1a5ce8;
+  --green:#0db87a;--green-bg:rgba(13,184,122,0.1);
+  --amber:#f5a623;--amber-bg:rgba(245,166,35,0.1);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.1);
+  --blue-bg:rgba(47,114,255,0.1);
+  --r:10px;--rl:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;padding:20px;
+}
+.login-card{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:16px;padding:36px 32px;width:380px;max-width:100%;
+}
+.login-logo{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px;}
+.login-logo span{color:var(--accent);}
+.login-sub{font-size:12px;color:var(--text3);margin-bottom:28px;}
+.login-label{font-size:11px;color:var(--text3);margin-bottom:5px;display:block;}
+.login-input{
+  width:100%;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:8px;color:var(--text);padding:10px 12px;
+  font-family:'DM Sans',sans-serif;font-size:13px;outline:none;
+  transition:border-color .15s;margin-bottom:12px;
+}
+.login-input:focus{border-color:var(--accent);}
+.login-btn{
+  width:100%;background:var(--accent);border:none;border-radius:8px;
+  color:#fff;padding:11px;font-family:'DM Sans',sans-serif;font-size:13px;
+  font-weight:600;cursor:pointer;transition:background .15s;margin-top:4px;
+}
+.login-btn:hover{background:var(--accent2);}
+.login-btn:disabled{opacity:.5;cursor:not-allowed;}
+.login-error{
+  background:var(--red-bg);border:1px solid rgba(239,68,68,.2);
+  border-radius:8px;padding:9px 12px;font-size:12px;color:var(--red);
+  margin-top:10px;display:none;
+}
+.login-demo{
+  margin-top:16px;padding-top:16px;border-top:1px solid var(--border);
+  font-size:11px;color:var(--text3);text-align:center;line-height:1.7;
+}
+
+/* ── APP SHELL ── */
+#app-shell{display:none;height:100vh;overflow:hidden;}
+.layout{display:flex;height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:210px;flex-shrink:0;background:var(--bg2);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+}
+.sb-logo{padding:16px 14px 12px;border-bottom:1px solid var(--border);}
+.logo-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;letter-spacing:-.3px;line-height:1.1;}
+.logo-name span{color:var(--accent);}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:3px;}
+.sb-nav{padding:10px 8px;flex:1;overflow-y:auto;}
+.nav-sec{font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:10px 8px 4px;}
+.nav-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border-radius:8px;cursor:pointer;color:var(--text2);font-size:12px;
+  transition:all .15s;margin-bottom:1px;border:1px solid transparent;
+}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--blue-bg);color:var(--accent);border-color:rgba(47,114,255,.2);}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.6;}
+.nav-item.active .nav-icon{opacity:1;}
+.nav-badge{
+  background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2);
+  border-radius:999px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:auto;
+}
+.sb-footer{padding:10px;border-top:1px solid var(--border);}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:8px;padding:8px 10px;cursor:pointer;}
+.user-chip:hover{background:var(--bg4);}
+.user-av{
+  width:28px;height:28px;border-radius:50%;background:var(--accent2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;flex-shrink:0;
+}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.page-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:9px;}
+.live-pill{
+  display:flex;align-items:center;gap:5px;background:var(--green-bg);
+  border:1px solid rgba(13,184,122,.2);border-radius:999px;padding:3px 10px;
+  font-size:11px;color:var(--green);
+}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── CONTENT AREA ── */
+.content{flex:1;overflow-y:auto;padding:18px 22px;}
+.page{display:none;animation:fadeIn .18s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── METRICS ── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;}
+.metric-label{font-size:10px;color:var(--text3);margin-bottom:4px;}
+.metric-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;line-height:1;}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:3px;}
+.v-green{color:var(--green);}.v-red{color:var(--red);}.v-amber{color:var(--amber);}
+
+/* ── SECTION ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sec-lbl{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;}
+
+/* ── TABLE ── */
+.tcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:16px;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-size:10px;color:var(--text3);font-weight:500;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);font-size:12px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(255,255,255,.015);}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;}
+.b-ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(13,184,122,.2);}
+.b-warn{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,166,35,.2);}
+.b-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.b-info{background:var(--blue-bg);color:var(--accent);border:1px solid rgba(47,114,255,.2);}
+.b-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+
+/* ── AVATAR ── */
+.av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.av-blue{background:#1e3560;color:#7aadff;}
+.av-teal{background:#0b2e22;color:#34d399;}
+.av-purple{background:#1c1640;color:#a78bfa;}
+.av-amber{background:#382200;color:#fbbf24;}
+.av-coral{background:#381510;color:#fb923c;}
+.av-green{background:#0a2918;color:#4ade80;}
+.dc{display:flex;align-items:center;gap:7px;}
+
+/* ── PROGRESS ── */
+.bw{width:65px;height:4px;background:var(--bg4);border-radius:3px;display:inline-block;vertical-align:middle;margin-right:5px;}
+.bf{height:4px;border-radius:3px;}
+.bf-ok{background:var(--green);}.bf-warn{background:var(--amber);}.bf-danger{background:var(--red);}
+
+/* ── ALERTS ── */
+.alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.alert-item:last-child{border-bottom:none;}
+.adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.abody{flex:1;}
+.atitle{font-weight:500;font-size:12px;margin-bottom:2px;}
+.adesc{font-size:11px;color:var(--text2);line-height:1.5;}
+.atime{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;}
+
+/* ── CONDUCTORES ── */
+.cond-row{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:7px;overflow:hidden;transition:border-color .15s;}
+.cond-row:hover{border-color:var(--border2);}
+.cond-row-hdr{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;}
+.cond-info{flex:1;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:10px;}
+.cond-expand{display:none;border-top:1px solid var(--border);background:var(--bg3);}
+.cond-row.open .cond-expand{display:block;}
+.exp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+.exp-sec{padding:14px;border-right:1px solid var(--border);}
+.exp-sec:last-child{border-right:none;}
+.exp-title{font-size:10px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:9px;font-weight:600;}
+.exp-field{margin-bottom:7px;}
+.exp-label{font-size:10px;color:var(--text3);margin-bottom:2px;}
+.exp-val{font-size:12px;}
+.exp-actions{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:7px;background:var(--bg2);}
+.lic-bar-wrap{background:var(--bg4);border-radius:3px;height:3px;margin-top:4px;}
+.lic-bar{height:3px;border-radius:3px;}
+
+/* ── PLANIF ── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:16px;}
+.day-col{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.day-hdr{background:var(--bg3);padding:6px 8px;font-size:10px;font-weight:600;border-bottom:1px solid var(--border);text-align:center;}
+.day-hdr.today{color:var(--accent);}
+.day-shift{padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px;cursor:pointer;transition:background .1s;}
+.day-shift:hover{background:var(--bg3);}
+.day-shift:last-child{border-bottom:none;}
+.ds-driver{font-weight:600;color:var(--text);}
+.ds-route{color:var(--text3);}
+.ds-time{color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;margin-top:1px;}
+.day-add{padding:6px 8px;font-size:10px;color:var(--text3);text-align:center;cursor:pointer;border-top:1px dashed var(--border);}
+.day-add:hover{color:var(--accent);}
+.planif-form{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-bottom:16px;}
+.form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-label{font-size:10px;color:var(--text3);}
+.suggest{border-left:3px solid var(--accent);background:var(--blue-bg);border-radius:0 var(--r) var(--r) 0;padding:10px 12px;margin-bottom:10px;font-size:12px;}
+.suggest.warn{border-left-color:var(--amber);background:var(--amber-bg);}
+.suggest.ok{border-left-color:var(--green);background:var(--green-bg);}
+.sug-title{font-weight:600;margin-bottom:3px;}
+.sug-desc{color:var(--text2);line-height:1.5;}
+
+/* ── GPS ── */
+.gps-layout{display:flex;height:calc(100vh - 52px);overflow:hidden;}
+.gps-panel{width:270px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.gps-panel-hdr{padding:11px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.gps-panel-title{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;}
+.filter-row{padding:7px 12px;border-bottom:1px solid var(--border);display:flex;gap:5px;}
+.filter-btn{padding:3px 9px;border-radius:6px;font-size:10px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all .15s;font-family:'DM Sans',sans-serif;}
+.filter-btn.active{background:var(--blue-bg);color:var(--accent);border-color:rgba(47,114,255,.3);}
+.bus-list-gps{flex:1;overflow-y:auto;}
+.bus-item{padding:11px 13px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-left:3px solid transparent;}
+.bus-item:hover{background:var(--bg3);}
+.bus-item.selected{background:var(--blue-bg);border-left-color:var(--accent);}
+.bus-name-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.bus-name-gps{font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;}
+.bus-sdot{width:6px;height:6px;border-radius:50%;}
+.bb-moving{background:var(--green-bg);color:var(--green);border:1px solid rgba(13,184,122,.2);}
+.bb-stopped{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,166,35,.2);}
+.bb-garage{background:var(--bg4);color:var(--text3);border:1px solid var(--border);}
+.gps-map-wrap{flex:1;display:flex;flex-direction:column;}
+#map{flex:1;}
+.gps-detail{height:130px;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;overflow:hidden;}
+.gps-detail-main{flex:1;padding:12px 16px;border-right:1px solid var(--border);}
+.gps-stats-row{display:flex;gap:18px;margin-top:8px;}
+.gstat{min-width:70px;}
+.gstat-label{font-size:10px;color:var(--text3);margin-bottom:2px;}
+.gstat-val{font-size:16px;font-weight:700;font-family:'Syne',sans-serif;}
+.gstat-unit{font-size:10px;color:var(--text3);}
+.api-panel{width:200px;flex-shrink:0;padding:12px;}
+.api-block{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 9px;font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);line-height:1.8;}
+.ak{color:var(--accent);}.av2{color:var(--green);}
+
+/* ── GANTT ── */
+.gantt-wrap{overflow-x:auto;}
+.ghr{display:flex;align-items:center;min-width:650px;border-bottom:1px solid var(--border);min-height:40px;}
+.ghr:last-child{border-bottom:none;}
+.gname{width:110px;flex-shrink:0;padding:0 11px;font-size:11px;display:flex;align-items:center;gap:5px;}
+.gtl{flex:1;position:relative;height:40px;}
+.ggl{position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(90deg,transparent,transparent calc(100%/24 - .5px),var(--border) calc(100%/24 - .5px),var(--border) calc(100%/24));}
+.gbar{position:absolute;top:8px;height:24px;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;}
+.gbc{background:rgba(13,184,122,.12);color:var(--green);border:1px solid rgba(13,184,122,.2);}
+.gbr{background:var(--bg4);color:var(--text3);border:1px solid var(--border);}
+.gbw{background:rgba(245,166,35,.12);color:var(--amber);border:1px solid rgba(245,166,35,.2);}
+.gbd{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.glimit{position:absolute;top:0;bottom:0;width:1px;background:var(--red);opacity:.5;}
+.glbl{position:absolute;top:2px;font-size:9px;color:var(--red);left:3px;font-family:'DM Mono',monospace;}
+.ghhdr{display:flex;min-width:650px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.ghname{width:110px;flex-shrink:0;padding:5px 11px;font-size:10px;color:var(--text3);}
+.ghwrap{flex:1;display:grid;grid-template-columns:repeat(24,1fr);}
+.ghour{font-size:9px;color:var(--text3);text-align:center;padding:5px 0;border-left:1px solid var(--border);font-family:'DM Mono',monospace;}
+
+/* ── LIQUIDACIÓN ── */
+.liq-wrap{max-width:680px;margin:0 auto;}
+.liq-hdr{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:12px;}
+.liq-empresa{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+.liq-empresa span{color:var(--accent);}
+.liq-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.liq-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.liq-field-label{font-size:10px;color:var(--text3);margin-bottom:2px;}
+.liq-field{font-size:12px;}
+.liq-sec{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:10px;}
+.liq-sec-title{background:var(--bg3);padding:8px 13px;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;}
+.liq-row{display:flex;justify-content:space-between;align-items:center;padding:7px 13px;border-bottom:1px solid var(--border);font-size:12px;}
+.liq-row:last-child{border-bottom:none;}
+.liq-row-lbl{color:var(--text2);}
+.liq-row-val{font-family:'DM Mono',monospace;font-weight:500;}
+.liq-total{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;background:var(--blue-bg);}
+.liq-total-lbl{font-weight:600;font-size:13px;}
+.liq-total-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);}
+.firma-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;}
+.firma-box{border-top:1px solid var(--border2);padding-top:7px;font-size:10px;color:var(--text3);text-align:center;}
+
+/* ── HEATMAP ── */
+.heatmap-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+.hm-dl{font-size:10px;color:var(--text3);text-align:center;}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.hm-cell{height:18px;border-radius:3px;background:var(--bg4);transition:opacity .2s;}
+.hm-w{background:var(--green);opacity:.7;}
+.hm-f{opacity:.15;}
+
+/* ── MODAL ── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;align-items:flex-start;justify-content:center;padding-top:50px;}
+.modal-ov.open{display:flex;animation:fadeIn .15s ease;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:22px;width:540px;max-width:96vw;max-height:88vh;overflow-y:auto;}
+.modal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:9px;}
+.modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:18px;}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-hint{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* ── INPUTS GLOBALES ── */
+select,input[type=text],input[type=date],input[type=time],input[type=number],input[type=email],input[type=password]{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:7px;
+  color:var(--text);padding:7px 9px;font-family:'DM Sans',sans-serif;
+  font-size:12px;outline:none;transition:border-color .15s;width:100%;
+}
+select:focus,input:focus{border-color:var(--accent);}
+.btn{padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;border:1px solid var(--border2);background:var(--bg3);color:var(--text);transition:all .15s;}
+.btn:hover{background:var(--bg4);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-danger{background:var(--red-bg);border-color:rgba(239,68,68,.3);color:var(--red);}
+
+/* ── LEAFLET DARK ── */
+.leaflet-container{background:#0c0f18!important;}
+.leaflet-tile-pane{filter:brightness(.75) saturate(.6) hue-rotate(195deg) invert(1) hue-rotate(195deg) brightness(.45);}
+.leaflet-popup-content-wrapper{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;}
+.leaflet-popup-tip{background:var(--bg2);}
+.leaflet-popup-content{margin:11px 13px;font-size:12px;}
+.leaflet-control-zoom{background:var(--bg2)!important;border:1px solid var(--border2)!important;}
+.leaflet-control-zoom a{background:var(--bg2)!important;color:var(--text)!important;border-bottom:1px solid var(--border)!important;}
+.leaflet-control-attribution{background:rgba(12,15,24,.9)!important;color:var(--text3)!important;font-size:10px!important;}
+.leaflet-control-attribution a{color:var(--text2)!important;}
+
+/* ── LOADING ── */
+.loading-overlay{
+  position:fixed;inset:0;background:var(--bg);z-index:500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:12px;color:var(--text3);}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:18px;right:18px;z-index:9999;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:12px;display:none;max-width:300px;line-height:1.5;}
+.toast.show{display:block;animation:fadeIn .2s ease;}
+.toast.ok{border-color:rgba(13,184,122,.3);color:var(--green);}
+.toast.err{border-color:rgba(239,68,68,.3);color:var(--red);}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ LOADING ════════════════ -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-txt">Conectando con Firebase…</div>
+</div>
+
+<!-- ════════════════ LOGIN ════════════════ -->
+<div id="login-screen" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">Bus<span>Control</span></div>
+    <div class="login-sub">Sistema de gestión de conductores · v1.0</div>
+    <label class="login-label">Correo electrónico</label>
+    <input class="login-input" type="email" id="login-email" placeholder="admin@empresa.cl" autocomplete="username">
+    <label class="login-label">Contraseña</label>
+    <input class="login-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-demo">
+      <strong style="color:var(--text2);">Demo rápido</strong><br>
+      Crea un usuario en Firebase Auth<br>y su documento en /usuarios/{uid}
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ APP SHELL ════════════════ -->
+<div id="app-shell">
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="logo-name">Bus<span>Control</span></div>
+    <div class="logo-sub" id="sb-empresa-nombre">Cargando…</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-sec">Principal</div>
+    <div class="nav-item active" onclick="go('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="go('alertas',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1.5 13h13L8 1.5z"/><line x1="8" y1="6" x2="8" y2="9"/><circle cx="8" cy="11" r=".5" fill="currentColor"/></svg>
+      Alertas <span class="nav-badge" id="badge-alertas">0</span>
+    </div>
+    <div class="nav-sec">Operaciones</div>
+    <div class="nav-item" onclick="go('planificacion',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="2"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="1" y1="7" x2="15" y2="7"/></svg>
+      Planificación diaria
+    </div>
+    <div class="nav-item" onclick="go('conductores',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
+      Conductores
+    </div>
+    <div class="nav-item" onclick="go('jornada',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="4" x2="10" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="7" y2="12"/></svg>
+      Control de jornada
+    </div>
+    <div class="nav-item" onclick="go('gps',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7" r="3"/><path d="M8 1a6 6 0 016 6c0 4-6 9-6 9S2 11 2 7a6 6 0 016-6z"/></svg>
+      GPS — Flota
+    </div>
+    <div class="nav-sec">RRHH</div>
+    <div class="nav-item" onclick="go('rrhh',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.76 2.24-5 5-5"/><circle cx="11" cy="8" r="2"/><path d="M8 14c0-1.66 1.34-3 3-3s3 1.34 3 3"/></svg>
+      Personal
+    </div>
+    <div class="nav-item" onclick="go('liquidacion',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="2"/><line x1="5" y1="5" x2="11" y2="5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="11" x2="8" y2="11"/></svg>
+      Liquidación de sueldo
+    </div>
+  </nav>
+  <div class="sb-footer">
+    <div class="user-chip" onclick="doLogout()">
+      <div class="user-av" id="sb-user-av">?</div>
+      <div>
+        <div style="font-size:12px;font-weight:500;" id="sb-user-nombre">…</div>
+        <div style="font-size:10px;color:var(--text3);">Cerrar sesión</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="topbar-right">
+      <div class="live-pill"><div class="live-dot"></div>En vivo · <span id="clock">--:--</span></div>
+      <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;" id="sync-txt"></div>
+      <button class="btn btn-primary" style="font-size:11px;" onclick="go('planificacion',null)">+ Planificar turno</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="metrics" id="dash-metrics">
+        <div class="metric"><div class="metric-label">Conductores activos</div><div class="metric-val v-green" id="m-activos">—</div><div class="metric-sub" id="m-activos-sub">cargando…</div></div>
+        <div class="metric"><div class="metric-label">Alertas críticas</div><div class="metric-val v-red" id="m-alertas">—</div><div class="metric-sub">hoy</div></div>
+        <div class="metric"><div class="metric-label">Buses en ruta</div><div class="metric-val" id="m-buses">—</div><div class="metric-sub">señal GPS</div></div>
+        <div class="metric"><div class="metric-label">Licencias por vencer</div><div class="metric-val v-amber" id="m-licencias">—</div><div class="metric-sub">próximos 30 días</div></div>
+      </div>
+      <div class="sec-hdr"><div class="sec-lbl">Conductores en jornada</div><button class="btn" style="font-size:11px;padding:5px 10px;" onclick="go('conductores',null)">Ver todos →</button></div>
+      <div class="tcard"><table>
+        <thead><tr><th>Conductor</th><th>Ruta</th><th>H. conducción</th><th>H. jornada</th><th>Estado</th></tr></thead>
+        <tbody id="dash-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px;">Cargando datos de Firebase…</td></tr></tbody>
+      </table></div>
+      <div class="sec-hdr"><div class="sec-lbl">Últimas alertas</div><button class="btn" style="font-size:11px;padding:5px 10px;" onclick="go('alertas',null)">Ver todas →</button></div>
+      <div class="tcard" id="dash-alerts"><div style="padding:20px;text-align:center;color:var(--text3);">Cargando alertas…</div></div>
+    </div>
+
+    <!-- ALERTAS -->
+    <div id="page-alertas" class="page">
+      <div class="sec-lbl" style="margin-bottom:10px;">Alertas activas — datos en tiempo real desde Firebase</div>
+      <div class="tcard" id="all-alerts"></div>
+    </div>
+
+    <!-- PLANIFICACIÓN -->
+    <div id="page-planificacion" class="page">
+      <div class="suggest ok" style="margin-bottom:14px;">
+        <div class="sug-title">Registrar turnos operativos</div>
+        <div class="sug-desc">Asigna conductor, ruta y horario. El sistema valida horas disponibles según ley (9 h jornada · 5 h conducción) antes de guardar en Firebase.</div>
+      </div>
+      <div class="planif-form">
+        <div class="sec-lbl" style="margin-bottom:11px;">Nuevo turno</div>
+        <div class="form-grid-3" style="margin-bottom:10px;">
+          <div class="form-group"><div class="form-label">Fecha</div><input type="date" id="pf-fecha"></div>
+          <div class="form-group"><div class="form-label">Ruta</div>
+            <select id="pf-ruta">
+              <option value="">— Seleccionar —</option>
+              <option value="talca-santiago">Talca → Santiago (3.5 h)</option>
+              <option value="santiago-talca">Santiago → Talca (3.5 h)</option>
+              <option value="talca-curico">Talca → Curicó (1.5 h)</option>
+              <option value="talca-rancagua">Talca → Rancagua (2.8 h)</option>
+              <option value="talca-sfernando">Talca → San Fernando (2.0 h)</option>
+              <option value="talca-linares">Talca → Linares (1.2 h)</option>
+              <option value="talca-chillan">Talca → Chillán (2.5 h)</option>
+              <option value="talca-constitucion">Talca → Constitución (2.0 h)</option>
+            </select>
+          </div>
+          <div class="form-group"><div class="form-label">Conductor</div>
+            <select id="pf-cond"><option value="">— Cargando… —</option></select>
+          </div>
+        </div>
+        <div class="form-grid-3" style="margin-bottom:10px;">
+          <div class="form-group"><div class="form-label">Bus</div>
+            <select id="pf-bus">
+              <option>Bus 03 — Mercedes O500</option><option>Bus 07 — Volvo B8R</option>
+              <option>Bus 14 — Scania K410</option><option>Bus 18 — Mercedes O500</option>
+              <option>Bus 21 — Volvo B8R</option>
+            </select>
+          </div>
+          <div class="form-group"><div class="form-label">Hora de salida</div><input type="time" id="pf-sal" value="06:00"></div>
+          <div class="form-group"><div class="form-label">Tipo de día</div>
+            <select id="pf-tipo"><option value="habil">Día hábil</option><option value="sabado">Sábado</option><option value="domingo">Domingo</option><option value="feriado">Feriado (recargo 50%)</option></select>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div id="pf-val" style="font-size:11px;"></div>
+          <div style="display:flex;gap:7px;">
+            <button class="btn" style="font-size:11px;" onclick="validarTurno()">Validar</button>
+            <button class="btn btn-primary" style="font-size:11px;" onclick="guardarTurnoUI()">Guardar en Firebase</button>
+          </div>
+        </div>
+      </div>
+      <div class="sec-lbl" style="margin-bottom:9px;">Semana actual</div>
+      <div class="week-grid" id="week-grid"></div>
+    </div>
+
+    <!-- CONDUCTORES -->
+    <div id="page-conductores" class="page">
+      <div class="sec-hdr">
+        <div class="sec-lbl">Conductores — datos desde Firebase</div>
+        <div style="display:flex;gap:7px;">
+          <input type="text" id="search-cond" placeholder="Buscar por nombre o RUT…" style="width:200px;" oninput="buscarConductoresUI(this.value)">
+          <select id="f-est" onchange="filterC()" style="width:120px;">
+            <option value="todos">Todos</option><option value="critico">Crítico</option>
+            <option value="atencion">Atención</option><option value="normal">Normal</option>
+          </select>
+          <button class="btn btn-primary" style="font-size:11px;" onclick="openModalAdd()">+ Agregar</button>
+        </div>
+      </div>
+      <div id="cond-list"><div style="padding:20px;text-align:center;color:var(--text3);">Cargando conductores desde Firebase…</div></div>
+    </div>
+
+    <!-- JORNADA -->
+    <div id="page-jornada" class="page">
+      <div class="sec-lbl" style="margin-bottom:10px;">Control de jornada · Ley 19.233 — máx. 5 h conducción · 9 h jornada diaria</div>
+      <div class="tcard gantt-wrap">
+        <div class="ghhdr"><div class="ghname">Conductor</div><div class="ghwrap" id="g-hours"></div></div>
+        <div id="g-rows"></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:7px;font-size:11px;color:var(--text2);">
+        <span><span style="display:inline-block;width:12px;height:8px;border-radius:2px;background:rgba(13,184,122,.12);border:1px solid rgba(13,184,122,.2);vertical-align:middle;margin-right:3px;"></span>Conducción</span>
+        <span><span style="display:inline-block;width:12px;height:8px;border-radius:2px;background:var(--bg4);border:1px solid var(--border);vertical-align:middle;margin-right:3px;"></span>Descanso</span>
+        <span><span style="display:inline-block;width:12px;height:8px;border-radius:2px;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.2);vertical-align:middle;margin-right:3px;"></span>Cerca límite</span>
+        <span><span style="display:inline-block;width:12px;height:8px;border-radius:2px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);vertical-align:middle;margin-right:3px;"></span>Excedido</span>
+      </div>
+    </div>
+
+    <!-- GPS -->
+    <div id="page-gps" class="page" style="padding:0;margin:-18px -22px;overflow:hidden;">
+      <div class="gps-layout">
+        <div class="gps-panel">
+          <div class="gps-panel-hdr">
+            <div class="gps-panel-title">Flota activa</div>
+            <div style="font-size:11px;color:var(--text2);" id="gps-count">— buses</div>
+          </div>
+          <div class="filter-row">
+            <button class="filter-btn active" onclick="setGpsFilter('todos',this)">Todos</button>
+            <button class="filter-btn" onclick="setGpsFilter('en_ruta',this)">En ruta</button>
+            <button class="filter-btn" onclick="setGpsFilter('parado',this)">Parados</button>
+          </div>
+          <div class="bus-list-gps" id="gps-bus-list"></div>
+        </div>
+        <div class="gps-map-wrap">
+          <div id="map"></div>
+          <div class="gps-detail">
+            <div class="gps-detail-main" id="gps-detail-main">
+              <div style="color:var(--text3);font-size:12px;padding-top:20px;">Selecciona un bus para ver el detalle</div>
+            </div>
+            <div class="api-panel">
+              <div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;">JSON API GPS</div>
+              <div class="api-block" id="api-preview"><span style="color:var(--text3)">// selecciona un bus</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RRHH -->
+    <div id="page-rrhh" class="page">
+      <div class="sec-hdr">
+        <div class="sec-lbl">Personal — datos desde Firebase</div>
+        <button class="btn btn-primary" style="font-size:11px;" onclick="openModalAdd()">+ Agregar trabajador</button>
+      </div>
+      <div class="tcard"><table>
+        <thead><tr><th>Trabajador</th><th>AFP</th><th>Salud</th><th>Sueldo base</th><th>Días trab.</th><th>Feriados</th><th>Líquido aprox.</th><th></th></tr></thead>
+        <tbody id="rrhh-tbody"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px;">Cargando desde Firebase…</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- LIQUIDACIÓN -->
+    <div id="page-liquidacion" class="page">
+      <div class="sec-hdr">
+        <div class="sec-lbl">Liquidación de sueldo</div>
+        <div style="display:flex;gap:7px;">
+          <select id="liq-t" onchange="renderLiq()" style="width:200px;"></select>
+          <select id="liq-m" style="width:130px;"><option>Abril 2026</option><option>Marzo 2026</option></select>
+          <button class="btn btn-primary" style="font-size:11px;" onclick="showToast('Exportando PDF…','ok')">Exportar PDF</button>
+        </div>
+      </div>
+      <div class="liq-wrap" id="liq-content"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+</div><!-- /app-shell -->
+
+<!-- MODAL EDITAR CONDUCTOR -->
+<div class="modal-ov" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title"><div id="med-av" class="av av-blue" style="width:30px;height:30px;font-size:11px;"></div><span id="med-name">Editar conductor</span></div>
+    <div class="form-grid-2" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Nombre completo</div><input type="text" id="ed-nombre"></div>
+      <div class="form-group"><div class="form-label">RUT</div><input type="text" id="ed-rut"></div>
+    </div>
+    <div class="form-grid-3" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Clase licencia</div>
+        <select id="ed-lic"><option>A3 — Buses interprovinciales</option><option>A2</option><option>A4</option><option>B</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Renovación licencia</div><input type="date" id="ed-renov"><div class="form-hint">Última renovación</div></div>
+      <div class="form-group"><div class="form-label">Vencimiento licencia</div><input type="date" id="ed-venc"><div class="form-hint" id="ed-venc-hint">Alerta 30 días antes</div></div>
+    </div>
+    <div id="ed-lic-estado" style="margin-bottom:10px;"></div>
+    <div class="form-grid-3">
+      <div class="form-group"><div class="form-label">Sueldo base</div><input type="number" id="ed-sueldo"></div>
+      <div class="form-group"><div class="form-label">AFP</div>
+        <select id="ed-afp"><option>Habitat</option><option>Capital</option><option>Cuprum</option><option>Modelo</option><option>Planvital</option><option>ProVida</option><option>Uno</option></select>
+      </div>
+      <div class="form-group"><div class="form-label">Salud</div>
+        <select id="ed-salud"><option>Fonasa</option><option>Isapre Banmédica</option><option>Isapre Cruz Blanca</option><option>Isapre Colmena</option></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="closeModalEdit()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicionFirebase()">Guardar en Firebase</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR -->
+<div class="modal-ov" id="modal-add">
+  <div class="modal">
+    <div class="modal-title">Agregar conductor</div>
+    <div class="form-grid-2" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Nombre completo</div><input type="text" id="add-nombre" placeholder="Juan Pérez Soto"></div>
+      <div class="form-group"><div class="form-label">RUT</div><input type="text" id="add-rut" placeholder="12.345.678-9"></div>
+    </div>
+    <div class="form-grid-3" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Clase licencia</div><select id="add-lic"><option>A3</option><option>A2</option><option>A4</option></select></div>
+      <div class="form-group"><div class="form-label">Renovación</div><input type="date" id="add-renov"></div>
+      <div class="form-group"><div class="form-label">Vencimiento</div><input type="date" id="add-venc"></div>
+    </div>
+    <div class="form-grid-3">
+      <div class="form-group"><div class="form-label">Sueldo base</div><input type="number" id="add-sueldo" placeholder="600000"></div>
+      <div class="form-group"><div class="form-label">AFP</div><select id="add-afp"><option>Habitat</option><option>Capital</option><option>Cuprum</option><option>Modelo</option></select></div>
+      <div class="form-group"><div class="form-label">Salud</div><select id="add-salud"><option>Fonasa</option><option>Isapre Colmena</option><option>Isapre Banmédica</option></select></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModalAdd()">Cancelar</button>
+      <button class="btn btn-primary" onclick="agregarConductorFirebase()">Guardar en Firebase</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- LEAFLET -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- FIREBASE + APP (ES modules) -->
+<script type="module">
+import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+                              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import {
+  getFirestore, enableIndexedDbPersistence,
+  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc,
+  query, where, orderBy, onSnapshot, serverTimestamp, limit,
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── CONFIG ──────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyD83G94vXnEz4hqu86JQFMvWZ-FrIDOQGY",
+  authDomain:        "buscontrol-da400.firebaseapp.com",
+  projectId:         "buscontrol-da400",
+  storageBucket:     "buscontrol-da400.firebasestorage.app",
+  messagingSenderId: "771012964151",
+  appId:             "1:771012964151:web:e3f807a5088e5cb07534b2"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// Caché offline
+enableIndexedDbPersistence(db).catch(()=>{});
+
+// ── ESTADO GLOBAL ────────────────────────────────────────────
+let session = { user:null, empresaId:null, rol:null, empresa:null };
+let conductoresCache = [];
+let alertasActivas   = [];
+let gpsData          = {};
+let unsubs           = []; // listeners activos para cancelar al logout
+let mapInited        = false;
+let leafletMap, gpsFilter='todos', selectedBus=null;
+let gpsInterval      = null;
+
+// ── TOKENIZADOR (búsqueda rápida sin full scan) ──────────────
+function tokenizar(txt){
+  if(!txt) return [];
+  const limpio = txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').trim();
+  const palabras = limpio.split(/\s+/).filter(Boolean);
+  const tokens = new Set([limpio]);
+  for(const p of palabras){
+    tokens.add(p);
+    for(let i=2;i<p.length;i++) tokens.add(p.slice(0,i));
+  }
+  return [...tokens];
+}
+function tokenizarRut(rut){
+  if(!rut) return [];
+  const limpio = rut.replace(/[.\-]/g,'');
+  const t = new Set([limpio]);
+  for(let i=2;i<=limpio.length;i++) t.add(limpio.slice(0,i));
+  return [...t];
+}
+
+// ── CACHÉ EN MEMORIA ─────────────────────────────────────────
+const _cache = new Map();
+function cacheSet(k,v){ _cache.set(k,{v,ts:Date.now()}); }
+function cacheGet(k,ttl=60000){
+  const e=_cache.get(k);
+  if(!e||Date.now()-e.ts>ttl) return null;
+  return e.v;
+}
+function cacheInv(k){ _cache.delete(k); }
+
+// ── AUTH ─────────────────────────────────────────────────────
+window.doLogin = async function(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-error');
+  err.style.display='none';
+  btn.disabled=true; btn.textContent='Ingresando…';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e){
+    err.style.display='block';
+    err.textContent = e.code==='auth/invalid-credential'
+      ? 'Correo o contraseña incorrectos'
+      : e.message;
+    btn.disabled=false; btn.textContent='Ingresar';
+  }
+};
+
+window.doLogout = async function(){
+  unsubs.forEach(u=>u());
+  unsubs=[];
+  if(gpsInterval) clearInterval(gpsInterval);
+  conductoresCache=[];alertasActivas=[];gpsData={};
+  _cache.clear();
+  session={user:null,empresaId:null,rol:null,empresa:null};
+  await signOut(auth);
+};
+
+// Observer de sesión
+onAuthStateChanged(auth, async user => {
+  if(!user){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app-shell').style.display='none';
+    return;
+  }
+  // Leer perfil usuario
+  try {
+    const perfilSnap = await getDoc(doc(db,'usuarios',user.uid));
+    if(!perfilSnap.exists()){
+      showToast('Usuario sin perfil — crea /usuarios/'+user.uid+' en Firestore','err');
+      await signOut(auth); return;
+    }
+    const perfil = perfilSnap.data();
+    session.user      = user;
+    session.empresaId = perfil.empresaId;
+    session.rol       = perfil.rol;
+
+    const empSnap = await getDoc(doc(db,'empresas',perfil.empresaId));
+    session.empresa = empSnap.exists() ? empSnap.data() : { nombre:'Sin nombre' };
+
+    // UI
+    document.getElementById('sb-empresa-nombre').textContent = session.empresa.nombre || perfil.empresaId;
+    document.getElementById('sb-user-nombre').textContent    = perfil.nombre || user.email;
+    document.getElementById('sb-user-av').textContent        = (perfil.nombre||user.email).slice(0,2).toUpperCase();
+
+    document.getElementById('loading').style.display='none';
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-shell').style.display='block';
+
+    // Set fecha planif
+    document.getElementById('pf-fecha').value = new Date().toISOString().split('T')[0];
+
+    // Iniciar listeners
+    iniciarListeners();
+  } catch(e){
+    console.error(e);
+    showToast('Error al cargar perfil: '+e.message,'err');
+    document.getElementById('loading').style.display='none';
+    document.getElementById('login-screen').style.display='flex';
+  }
+});
+
+// ── LISTENERS FIRESTORE ──────────────────────────────────────
+function iniciarListeners(){
+  const eId = session.empresaId;
+
+  // 1. Conductores activos — onSnapshot
+  const qCond = query(
+    collection(db,'empresas',eId,'conductores'),
+    orderBy('nombre','asc')
+  );
+  const unsubCond = onSnapshot(qCond, snap => {
+    conductoresCache = snap.docs.map(d=>({id:d.id,...d.data()}));
+    cacheSet(eId+'/conductores/all', conductoresCache);
+    renderDashboardConductores();
+    renderConductoresList(conductoresCache);
+    renderLiqSelector();
+    renderRRHH();
+    renderPlanifSelector();
+    // Métricas
+    const activos = conductoresCache.filter(c=>c.estado==='activo'&&(c.horas_jornada_hoy||0)>0).length;
+    document.getElementById('m-activos').textContent = activos;
+    document.getElementById('m-activos-sub').textContent = `de ${conductoresCache.length} en nómina`;
+    // Licencias por vencer
+    const hoy = new Date();
+    const limite = new Date(); limite.setDate(hoy.getDate()+30);
+    const porVencer = conductoresCache.filter(c=>{
+      if(!c.licVencimiento) return false;
+      const v = c.licVencimiento.toDate ? c.licVencimiento.toDate() : new Date(c.licVencimiento);
+      return v <= limite;
+    }).length;
+    document.getElementById('m-licencias').textContent = porVencer;
+  });
+  unsubs.push(unsubCond);
+
+  // 2. Alertas activas — onSnapshot (tiempo real crítico)
+  const qAl = query(
+    collection(db,'empresas',eId,'alertas'),
+    where('resuelta','==',false),
+    orderBy('timestamp','desc'),
+    limit(50)
+  );
+  const unsubAl = onSnapshot(qAl, snap => {
+    alertasActivas = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const criticas = alertasActivas.filter(a=>a.nivel==='critica').length;
+    document.getElementById('m-alertas').textContent  = criticas;
+    document.getElementById('badge-alertas').textContent = alertasActivas.length;
+    renderAlertas();
+  });
+  unsubs.push(unsubAl);
+
+  // 3. GPS — polling cada 30s + listener Firestore
+  const unsubGps = onSnapshot(
+    collection(db,'empresas',eId,'gps_posiciones'),
+    snap => {
+      snap.docs.forEach(d=>{ gpsData[d.id]={id:d.id,...d.data()}; });
+      const enRuta = Object.values(gpsData).filter(b=>b.estado==='en_ruta').length;
+      document.getElementById('m-buses').textContent = enRuta;
+      if(mapInited) renderGpsList();
+    }
+  );
+  unsubs.push(unsubGps);
+
+  // Cargar turnos semana
+  cargarTurnosSemana();
+
+  // Clock
+  updateClock();
+  setInterval(updateClock,30000);
+}
+
+// ── RENDER DASHBOARD ─────────────────────────────────────────
+function bc(p){return p>=1?'bf-danger':p>=.8?'bf-warn':'bf-ok';}
+function sbadge(c){
+  const hc=c.horas_conduccion_hoy||0,hj=c.horas_jornada_hoy||0;
+  if(hc>=5||hj>=16) return '<span class="badge b-danger">Crítico</span>';
+  if(hc>=4||hj>=12.8) return '<span class="badge b-warn">Atención</span>';
+  if(hj===0) return '<span class="badge b-gray">Descanso</span>';
+  return '<span class="badge b-ok">Normal</span>';
+}
+function fmt(n){return Math.round(n).toLocaleString('es-CL');}
+
+function renderDashboardConductores(){
+  const activos = conductoresCache.filter(c=>(c.horas_jornada_hoy||0)>0).slice(0,8);
+  const tb = document.getElementById('dash-tbody');
+  if(!activos.length){
+    tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:16px;">Sin conductores en jornada hoy</td></tr>';
+    return;
+  }
+  tb.innerHTML = activos.map(c=>{
+    const hc=c.horas_conduccion_hoy||0, hj=c.horas_jornada_hoy||0;
+    const ph=Math.min(hc/5,1), pj=Math.min(hj/9,1);
+    const avColors=['av-blue','av-teal','av-purple','av-amber','av-coral','av-green'];
+    const av = avColors[Math.abs(c.nombre?.charCodeAt(0)||0)%6];
+    const init = (c.nombre||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+    return `<tr>
+      <td><div class="dc"><div class="av ${av}">${init}</div>${c.nombre||'—'}</div></td>
+      <td style="color:var(--text2);font-size:11px;">${c.rutaHoy||'—'}</td>
+      <td><span class="bw"><span class="bf ${bc(ph)}" style="width:${Math.round(ph*100)}%"></span></span>${hc.toFixed(1)} h</td>
+      <td><span class="bw"><span class="bf ${bc(pj)}" style="width:${Math.round(pj*100)}%"></span></span>${hj.toFixed(1)} h</td>
+      <td>${sbadge(c)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── RENDER ALERTAS ───────────────────────────────────────────
+function renderAlertas(){
+  const renderLista = (alertas, containerId) => {
+    const el = document.getElementById(containerId);
+    if(!el) return;
+    if(!alertas.length){
+      el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);">Sin alertas activas</div>';
+      return;
+    }
+    el.innerHTML = alertas.map(a=>{
+      const color = a.nivel==='critica'?'var(--red)':a.nivel==='preventiva'?'var(--amber)':'var(--green)';
+      const ts = a.timestamp?.toDate ? a.timestamp.toDate().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : '—';
+      return `<div class="alert-item">
+        <div class="adot" style="background:${color}"></div>
+        <div class="abody"><div class="atitle">${a.mensaje||a.titulo||'Alerta'}</div><div class="adesc">${a.tipo||''} · ${a.conductorNombre||''}</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <div class="atime">${ts}</div>
+          <button class="btn" style="font-size:10px;padding:2px 8px;" onclick="resolverAlertaUI('${a.id}')">Resolver</button>
+        </div>
+      </div>`;
+    }).join('');
+  };
+  renderLista(alertasActivas.slice(0,3), 'dash-alerts');
+  renderLista(alertasActivas, 'all-alerts');
+}
+
+window.resolverAlertaUI = async function(alertaId){
+  try {
+    await updateDoc(doc(db,'empresas',session.empresaId,'alertas',alertaId),{
+      resuelta:true, resueltaAt:serverTimestamp()
+    });
+    showToast('Alerta marcada como resuelta','ok');
+  } catch(e){ showToast('Error: '+e.message,'err'); }
+};
+
+// ── CONDUCTORES ──────────────────────────────────────────────
+function licStatus(c){
+  if(!c.licVencimiento) return {badge:'b-gray',txt:'Sin fecha',color:'var(--text3)'};
+  const venc = c.licVencimiento?.toDate ? c.licVencimiento.toDate() : new Date(c.licVencimiento);
+  const diff = Math.round((venc-new Date())/(1000*60*60*24));
+  if(diff<0)  return {badge:'b-danger',txt:`Vencida hace ${Math.abs(diff)} días`,color:'var(--red)'};
+  if(diff<30) return {badge:'b-warn',  txt:`Vence en ${diff} días`,              color:'var(--amber)'};
+  return               {badge:'b-ok',   txt:'Vigente',                             color:'var(--green)'};
+}
+
+function renderConductoresList(lista){
+  const avColors=['av-blue','av-teal','av-purple','av-amber','av-coral','av-green'];
+  const el = document.getElementById('cond-list');
+  if(!lista.length){ el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);">Sin conductores</div>'; return; }
+  el.innerHTML = lista.map((c,i)=>{
+    const hc=c.horas_conduccion_hoy||0, ph=Math.min(hc/5,1);
+    const ls=licStatus(c);
+    const av = avColors[Math.abs(c.nombre?.charCodeAt(0)||0)%6];
+    const init = (c.nombre||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="cond-row" id="crow-${c.id}">
+      <div class="cond-row-hdr" onclick="toggleRow('${c.id}')">
+        <div class="av ${av}">${init}</div>
+        <div class="cond-info">
+          <div><div style="font-weight:600;font-size:12px;">${c.nombre||'—'}</div><div style="font-size:10px;color:var(--text3);">${c.rut||'—'}</div></div>
+          <div><span class="badge ${ls.badge}">${ls.txt}</span></div>
+          <div style="font-size:11px;"><span class="bw"><span class="bf ${bc(ph)}" style="width:${Math.round(ph*100)}%"></span></span>${hc.toFixed(1)} h</div>
+          <div style="font-size:11px;color:var(--text3);">${c.dias_trabajados_mes||0} días / mes</div>
+          <div>${sbadge(c)}</div>
+          <div><button class="btn" style="font-size:10px;padding:4px 8px;" onclick="event.stopPropagation();openModalEdit('${c.id}')">Editar</button></div>
+        </div>
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3);flex-shrink:0;transition:transform .2s;" id="arr-${c.id}"><polyline points="2,4 6.5,8.5 11,4"/></svg>
+      </div>
+      <div class="cond-expand" id="exp-${c.id}">
+        <div class="exp-grid">
+          <div class="exp-sec">
+            <div class="exp-title">Datos personales</div>
+            <div class="exp-field"><div class="exp-label">Teléfono</div><div class="exp-val">${c.telefono||'—'}</div></div>
+            <div class="exp-field"><div class="exp-label">Email</div><div class="exp-val" style="font-size:11px;">${c.email||'—'}</div></div>
+            <div class="exp-field"><div class="exp-label">AFP / Salud</div><div class="exp-val">${c.afp||'—'} · ${c.salud||'—'}</div></div>
+            <div class="exp-field"><div class="exp-label">Sueldo base</div><div class="exp-val">$${fmt(c.sueldoBase||0)}</div></div>
+          </div>
+          <div class="exp-sec">
+            <div class="exp-title">Licencia de conducir</div>
+            <div class="exp-field"><div class="exp-label">Clase</div><div class="exp-val" style="font-size:14px;font-weight:700;">${c.licClase||'A3'}</div></div>
+            <div class="exp-field"><div class="exp-label">Vencimiento</div><div class="exp-val" style="color:${ls.color}">${c.licVencimiento ? (c.licVencimiento.toDate?c.licVencimiento.toDate():new Date(c.licVencimiento)).toLocaleDateString('es-CL') : '—'}</div></div>
+            <div class="exp-field"><div class="exp-label">Estado</div><span class="badge ${ls.badge}">${ls.txt}</span></div>
+          </div>
+          <div class="exp-sec">
+            <div class="exp-title">Jornada hoy</div>
+            <div class="exp-field"><div class="exp-label">H. conducción</div><div class="exp-val">${hc.toFixed(1)} h / 5.0 h máx.</div></div>
+            <div class="exp-field"><div class="exp-label">H. jornada</div><div class="exp-val">${(c.horas_jornada_hoy||0).toFixed(1)} h / 9.0 h</div></div>
+            <div class="exp-field"><div class="exp-label">Días este mes</div><div class="exp-val">${c.dias_trabajados_mes||0}</div></div>
+          </div>
+        </div>
+        <div class="exp-actions">
+          <button class="btn" style="font-size:11px;" onclick="openModalEdit('${c.id}')">Editar datos / licencia</button>
+          <button class="btn" style="font-size:11px;" onclick="selLiq('${c.id}')">Ver liquidación →</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleRow = function(id){
+  const row=document.getElementById('crow-'+id), arr=document.getElementById('arr-'+id);
+  const isOpen=row.classList.contains('open');
+  document.querySelectorAll('.cond-row').forEach(r=>r.classList.remove('open'));
+  document.querySelectorAll('[id^="arr-"]').forEach(a=>a.style.transform='');
+  if(!isOpen){row.classList.add('open');arr.style.transform='rotate(180deg)';}
+};
+
+window.buscarConductoresUI = function(termino){
+  if(!termino){ renderConductoresList(conductoresCache); return; }
+  const t = termino.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const filtered = conductoresCache.filter(c=>
+    (c.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(t) ||
+    (c.rut||'').replace(/[.\-]/g,'').includes(t.replace(/[.\-]/g,''))
+  );
+  renderConductoresList(filtered);
+};
+
+window.filterC = function(){
+  const f=document.getElementById('f-est').value;
+  let lista=conductoresCache;
+  if(f==='critico')  lista=lista.filter(c=>(c.horas_conduccion_hoy||0)>=5||(c.horas_jornada_hoy||0)>=16);
+  if(f==='atencion') lista=lista.filter(c=>((c.horas_conduccion_hoy||0)>=4||(c.horas_jornada_hoy||0)>=12.8)&&(c.horas_conduccion_hoy||0)<5);
+  if(f==='normal')   lista=lista.filter(c=>(c.horas_conduccion_hoy||0)<4&&(c.horas_jornada_hoy||0)<12.8);
+  renderConductoresList(lista);
+};
+
+// ── MODAL EDITAR ─────────────────────────────────────────────
+let editConductorId = null;
+window.openModalEdit = function(id){
+  editConductorId = id;
+  const c = conductoresCache.find(x=>x.id===id);
+  if(!c) return;
+  const av=['av-blue','av-teal','av-purple','av-amber','av-coral','av-green'];
+  const avCls = av[Math.abs(c.nombre?.charCodeAt(0)||0)%6];
+  const init = (c.nombre||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('med-av').className = 'av '+avCls;
+  document.getElementById('med-av').textContent = init;
+  document.getElementById('med-name').textContent = 'Editar — '+c.nombre;
+  document.getElementById('ed-nombre').value = c.nombre||'';
+  document.getElementById('ed-rut').value    = c.rut||'';
+  document.getElementById('ed-sueldo').value = c.sueldoBase||600000;
+  document.getElementById('ed-afp').value    = c.afp||'Habitat';
+  document.getElementById('ed-salud').value  = c.salud||'Fonasa';
+  if(c.licRenovacion){
+    const r = c.licRenovacion.toDate?c.licRenovacion.toDate():new Date(c.licRenovacion);
+    document.getElementById('ed-renov').value = r.toISOString().split('T')[0];
+  }
+  if(c.licVencimiento){
+    const v = c.licVencimiento.toDate?c.licVencimiento.toDate():new Date(c.licVencimiento);
+    document.getElementById('ed-venc').value = v.toISOString().split('T')[0];
+  }
+  updateLicEstado();
+  document.getElementById('modal-edit').classList.add('open');
+};
+
+function updateLicEstado(){
+  const venc = document.getElementById('ed-venc').value;
+  if(!venc) return;
+  const diff = Math.round((new Date(venc)-new Date())/(1000*60*60*24));
+  const el = document.getElementById('ed-lic-estado');
+  const [bg,br,col,txt] = diff<0
+    ? ['var(--red-bg)','rgba(239,68,68,.2)','var(--red)',`Vencida hace ${Math.abs(diff)} días — no puede operar`]
+    : diff<30
+    ? ['var(--amber-bg)','rgba(245,166,35,.2)','var(--amber)',`Vence en ${diff} días — renovar urgente`]
+    : ['var(--green-bg)','rgba(13,184,122,.2)','var(--green)',`Vigente — ${diff} días restantes`];
+  el.innerHTML=`<div style="background:${bg};border:1px solid ${br};border-radius:7px;padding:7px 10px;font-size:11px;color:${col};">${txt}</div>`;
+}
+document.getElementById('ed-venc').addEventListener('change', updateLicEstado);
+
+window.guardarEdicionFirebase = async function(){
+  if(!editConductorId) return;
+  const nombre = document.getElementById('ed-nombre').value.trim();
+  const rut    = document.getElementById('ed-rut').value.trim();
+  if(!nombre||!rut){ showToast('Nombre y RUT son obligatorios','err'); return; }
+  try {
+    const cambios = {
+      nombre, rut,
+      nombre_tokens: tokenizar(nombre),
+      rut_tokens:    tokenizarRut(rut),
+      sueldoBase:    parseFloat(document.getElementById('ed-sueldo').value)||600000,
+      afp:           document.getElementById('ed-afp').value,
+      salud:         document.getElementById('ed-salud').value,
+      licClase:      document.getElementById('ed-lic').value.split(' ')[0],
+      updatedAt:     serverTimestamp(),
+    };
+    const renov = document.getElementById('ed-renov').value;
+    const venc  = document.getElementById('ed-venc').value;
+    if(renov) cambios.licRenovacion = new Date(renov);
+    if(venc)  cambios.licVencimiento = new Date(venc);
+
+    await updateDoc(doc(db,'empresas',session.empresaId,'conductores',editConductorId), cambios);
+    closeModalEdit();
+    showToast('Conductor actualizado en Firebase ✓','ok');
+  } catch(e){ showToast('Error: '+e.message,'err'); }
+};
+
+window.closeModalEdit = ()=>document.getElementById('modal-edit').classList.remove('open');
+
+// ── MODAL AGREGAR ────────────────────────────────────────────
+window.openModalAdd  = ()=>document.getElementById('modal-add').classList.add('open');
+window.closeModalAdd = ()=>document.getElementById('modal-add').classList.remove('open');
+
+window.agregarConductorFirebase = async function(){
+  const nombre = document.getElementById('add-nombre').value.trim();
+  const rut    = document.getElementById('add-rut').value.trim();
+  if(!nombre||!rut){ showToast('Nombre y RUT son obligatorios','err'); return; }
+  try {
+    const conductor = {
+      nombre, rut,
+      nombre_tokens: tokenizar(nombre),
+      rut_tokens:    tokenizarRut(rut),
+      sueldoBase:    parseFloat(document.getElementById('add-sueldo').value)||600000,
+      afp:           document.getElementById('add-afp').value,
+      salud:         document.getElementById('add-salud').value,
+      licClase:      document.getElementById('add-lic').value.split(' ')[0],
+      licRenovacion: document.getElementById('add-renov').value ? new Date(document.getElementById('add-renov').value) : null,
+      licVencimiento:document.getElementById('add-venc').value  ? new Date(document.getElementById('add-venc').value)  : null,
+      estado:                'activo',
+      horas_conduccion_hoy:  0,
+      horas_jornada_hoy:     0,
+      dias_trabajados_mes:   0,
+      feriados_mes:          0,
+      createdAt:             serverTimestamp(),
+      updatedAt:             serverTimestamp(),
+    };
+    await addDoc(collection(db,'empresas',session.empresaId,'conductores'), conductor);
+    closeModalAdd();
+    showToast('Conductor agregado en Firebase ✓','ok');
+  } catch(e){ showToast('Error: '+e.message,'err'); }
+};
+
+// ── PLANIFICACIÓN ────────────────────────────────────────────
+let turnosSemana = [];
+
+async function cargarTurnosSemana(){
+  const hoy = new Date();
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate()-hoy.getDay()+1);
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate()+6);
+  const fi = lunes.toISOString().split('T')[0];
+  const ff = domingo.toISOString().split('T')[0];
+  try {
+    const snap = await getDocs(query(
+      collection(db,'empresas',session.empresaId,'turnos'),
+      where('fecha','>=',fi), where('fecha','<=',ff),
+      orderBy('fecha','asc'), orderBy('horaSalida','asc')
+    ));
+    turnosSemana = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderWeekGrid();
+  } catch(e){ console.warn('Turnos no disponibles (faltan índices):', e.message); renderWeekGrid(); }
+}
+
+function renderWeekGrid(){
+  const hoy = new Date();
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate()-hoy.getDay()+1);
+  const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const grid = document.getElementById('week-grid');
+  grid.innerHTML = dias.map((dia,i)=>{
+    const fecha = new Date(lunes); fecha.setDate(lunes.getDate()+i);
+    const fechaStr = fecha.toISOString().split('T')[0];
+    const esHoy = fechaStr===hoy.toISOString().split('T')[0];
+    const turnos = turnosSemana.filter(t=>t.fecha===fechaStr);
+    const items = turnos.map(t=>`<div class="day-shift">
+      <div class="ds-driver">${(t.conductorNombre||'').split(' ')[0]}</div>
+      <div class="ds-route">${t.rutaNombre||t.rutaId||'—'}</div>
+      <div class="ds-time">${t.horaSalida||'—'}</div>
+    </div>`).join('');
+    const dayNum = fecha.getDate();
+    return `<div class="day-col">
+      <div class="day-hdr${esHoy?' today':''}">${dia} ${dayNum}</div>
+      ${items||'<div style="padding:8px;font-size:10px;color:var(--text3);text-align:center;">Sin turnos</div>'}
+      <div class="day-add" onclick="showToast('Agrega el turno con el formulario arriba')">+ Turno</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPlanifSelector(){
+  const sel = document.getElementById('pf-cond');
+  sel.innerHTML = '<option value="">— Seleccionar —</option>' +
+    conductoresCache.filter(c=>c.estado==='activo').map(c=>
+      `<option value="${c.id}">${c.nombre} (${(5-(c.horas_conduccion_hoy||0)).toFixed(1)} h disp.)</option>`
+    ).join('');
+}
+
+window.validarTurno = function(){
+  const cId = document.getElementById('pf-cond').value;
+  const rId  = document.getElementById('pf-ruta').value;
+  const v    = document.getElementById('pf-val');
+  if(!cId||!rId){ v.innerHTML='<span style="color:var(--amber)">Selecciona conductor y ruta</span>'; return; }
+  const c  = conductoresCache.find(x=>x.id===cId);
+  const ls = licStatus(c);
+  const hc = c.horas_conduccion_hoy||0;
+  let msg='';
+  if(ls.color==='var(--red)') msg+=`<span style="color:var(--red)">✕ Licencia ${ls.txt} · </span>`;
+  if(hc>=5) msg+=`<span style="color:var(--red)">✕ Límite conducción alcanzado (${hc.toFixed(1)} h)</span>`;
+  else msg+=`<span style="color:var(--green)">✓ ${c.nombre} disponible · ${(5-hc).toFixed(1)} h libres · ${ls.txt}</span>`;
+  v.innerHTML=msg;
+};
+
+window.guardarTurnoUI = async function(){
+  const cId   = document.getElementById('pf-cond').value;
+  const rutaId = document.getElementById('pf-ruta').value;
+  const fecha  = document.getElementById('pf-fecha').value;
+  const sal    = document.getElementById('pf-sal').value;
+  const tipo   = document.getElementById('pf-tipo').value;
+  if(!cId||!rutaId||!fecha){ showToast('Completa conductor, ruta y fecha','err'); return; }
+  const c = conductoresCache.find(x=>x.id===cId);
+  if((c.horas_conduccion_hoy||0)>=5){ showToast('Conductor alcanzó el límite de conducción','err'); return; }
+  const rutasMap = {
+    'talca-santiago':'Talca → Santiago','santiago-talca':'Santiago → Talca',
+    'talca-curico':'Talca → Curicó','talca-rancagua':'Talca → Rancagua',
+    'talca-sfernando':'Talca → San Fernando','talca-linares':'Talca → Linares',
+    'talca-chillan':'Talca → Chillán','talca-constitucion':'Talca → Constitución'
+  };
+  try {
+    await addDoc(collection(db,'empresas',session.empresaId,'turnos'),{
+      fecha, horaSalida:sal, tipoDia:tipo,
+      conductorId:cId, conductorNombre:c.nombre,
+      rutaId, rutaNombre:rutasMap[rutaId]||rutaId,
+      busId:document.getElementById('pf-bus').value,
+      estado:'planificado', createdAt:serverTimestamp(),
+    });
+    showToast(`Turno guardado en Firebase ✓`,'ok');
+    cargarTurnosSemana();
+  } catch(e){ showToast('Error: '+e.message,'err'); }
+};
+
+// ── GANTT ────────────────────────────────────────────────────
+function initGantt(){
+  document.getElementById('g-hours').innerHTML=Array.from({length:24},(_,i)=>`<div class="ghour">${i}</div>`).join('');
+  const activos = conductoresCache.filter(c=>(c.horas_jornada_hoy||0)>0).slice(0,6);
+  if(!activos.length){
+    document.getElementById('g-rows').innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);">Sin conductores en jornada hoy</div>';
+    return;
+  }
+  const avColors=['av-blue','av-teal','av-purple','av-amber','av-coral','av-green'];
+  document.getElementById('g-rows').innerHTML = activos.map((c,i)=>{
+    const hc=c.horas_conduccion_hoy||0, hj=c.horas_jornada_hoy||0;
+    const inicio=6; // hora estimada de inicio
+    const lc=(inicio/24*100).toFixed(2), wc=(hc/24*100).toFixed(2);
+    const ld=((inicio+hc)/24*100).toFixed(2), wd=(0.5/24*100).toFixed(2);
+    const tipo = hc>=5?'gbd':hc>=4?'gbw':'gbc';
+    const lim=(5/24*100).toFixed(2);
+    const av=avColors[i%6];
+    const init=(c.nombre||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="ghr">
+      <div class="gname"><div class="av ${av}" style="width:22px;height:22px;font-size:9px;">${init}</div>${(c.nombre||'').split(' ')[0]}</div>
+      <div class="gtl"><div class="ggl"></div>
+        <div class="gbar ${tipo}" style="left:${lc}%;width:${wc}%;">${hc.toFixed(1)}h cond.</div>
+        <div class="gbar gbr" style="left:${ld}%;width:${wd}%;">Pausa</div>
+        <div class="glimit" style="left:${lim}%;"><div class="glbl">5h</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── GPS ──────────────────────────────────────────────────────
+const GPS_DEMO = {
+  'Bus 03':{lat:-36.529,lng:-72.080,vel:0,  km:98, ruta:'Talca→Chillán',   cond:'M. Torres',  estado:'parado',  color:'#f5a623'},
+  'Bus 07':{lat:-33.895,lng:-70.786,vel:95, km:45, ruta:'Santiago→Talca',  cond:'A. Sepúlveda',estado:'en_ruta', color:'#0db87a'},
+  'Bus 14':{lat:-35.182,lng:-71.529,vel:102,km:87, ruta:'Talca→Santiago',  cond:'C. Muñoz',   estado:'en_ruta', color:'#0db87a'},
+  'Bus 18':{lat:-34.170,lng:-70.980,vel:88, km:120,ruta:'Talca→Rancagua',  cond:'L. Contreras',estado:'en_ruta', color:'#0db87a'},
+  'Bus 21':{lat:-34.985,lng:-71.239,vel:0,  km:55, ruta:'Talca→Curicó',    cond:'J. Fuentes',  estado:'parado',  color:'#f5a623'},
+  'Bus 06':{lat:-35.421,lng:-71.662,vel:0,  km:0,  ruta:'Garaje',          cond:'Sin asignar', estado:'garaje',  color:'#50596e'},
+};
+let leafletMarkers={}, leafletTrails={};
+
+function initGPS(){
+  if(mapInited) return;
+  mapInited=true;
+  leafletMap = L.map('map',{center:[-34.5,-71.2],zoom:8});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:19
+  }).addTo(leafletMap);
+  L.circleMarker([-35.4264,-71.6554],{radius:8,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9})
+    .addTo(leafletMap).bindPopup('<strong>Terminal Talca — Altas Cumbres</strong>');
+  L.circleMarker([-33.450,-70.668],{radius:8,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9})
+    .addTo(leafletMap).bindPopup('<strong>Terminal Santiago</strong>');
+
+  // Usar datos Firestore si existen, si no, demo
+  const datos = Object.keys(gpsData).length ? gpsData : GPS_DEMO;
+  Object.entries(datos).forEach(([busId,pos])=>{
+    addBusMarker(busId, pos);
+  });
+  renderGpsList();
+  gpsInterval = setInterval(()=>{ simularMovimiento(); renderGpsList(); }, 30000);
+}
+
+function createBusIcon(busId, pos){
+  const isMoving = pos.estado==='en_ruta';
+  const num = busId.replace('Bus ','');
+  const pulse = isMoving?`<div style="position:absolute;top:-9px;left:-9px;width:50px;height:50px;border-radius:50%;border:2px solid ${pos.color||'#0db87a'};animation:gPulse 2s infinite;opacity:.3;"></div>`:'';
+  return L.divIcon({
+    html:`<style>@keyframes gPulse{0%,100%{transform:scale(1);opacity:.3}100%{transform:scale(1.7);opacity:0}}</style>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+      ${pulse}
+      <div style="width:32px;height:32px;border-radius:50%;background:${pos.color||'#0db87a'};display:flex;align-items:center;justify-content:center;border:2.5px solid rgba(255,255,255,.9);font-weight:700;font-size:11px;font-family:'DM Mono',monospace;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.6);z-index:1;">${num}</div>
+      <div style="background:#131825;border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:1px 5px;font-size:9px;margin-top:2px;white-space:nowrap;font-family:'DM Mono',monospace;color:#8891aa;">${pos.vel>0?pos.vel+' km/h':'Parado'}</div>
+    </div>`,
+    className:'', iconSize:[32,50], iconAnchor:[16,16]
+  });
+}
+
+function addBusMarker(busId, pos){
+  if(leafletMarkers[busId]){
+    leafletMarkers[busId].setLatLng([pos.lat,pos.lng]);
+    leafletMarkers[busId].setIcon(createBusIcon(busId,pos));
+  } else {
+    const m = L.marker([pos.lat,pos.lng],{icon:createBusIcon(busId,pos)});
+    m.addTo(leafletMap);
+    m.on('click',()=>selectBusGps(busId));
+    leafletMarkers[busId]=m;
+  }
+}
+
+function simularMovimiento(){
+  const datos = Object.keys(gpsData).length ? gpsData : GPS_DEMO;
+  Object.entries(datos).forEach(([busId,pos])=>{
+    if(pos.estado==='en_ruta'){
+      const dir = busId==='Bus 07'?1:-1;
+      pos.lat += dir*0.002+(Math.random()-.5)*.001;
+      pos.lng += (Math.random()-.5)*.001;
+      pos.vel  = Math.round(Math.max(75,Math.min(115,pos.vel+(Math.random()-.5)*8)));
+      pos.km   = Math.round(pos.km+pos.vel/120);
+      addBusMarker(busId,pos);
+    }
+  });
+  if(selectedBus) selectBusGps(selectedBus);
+}
+
+function renderGpsList(){
+  const datos = Object.keys(gpsData).length ? gpsData : GPS_DEMO;
+  const lista = Object.entries(datos).filter(([,b])=> gpsFilter==='todos'||b.estado===gpsFilter);
+  document.getElementById('gps-count').textContent = lista.length+' buses';
+  document.getElementById('gps-bus-list').innerHTML = lista.map(([busId,b])=>`
+    <div class="bus-item${selectedBus===busId?' selected':''}" onclick="selectBusGps('${busId}')">
+      <div class="bus-name-row">
+        <div class="bus-name-gps"><div class="bus-sdot" style="background:${b.color};${b.estado==='en_ruta'?'animation:pulse 2s infinite':''}"></div>${busId}</div>
+        <span class="badge ${b.estado==='en_ruta'?'bb-moving':b.estado==='parado'?'bb-stopped':'bb-garage'}">${b.estado==='en_ruta'?'En ruta':b.estado==='parado'?'Parado':'Garaje'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">${b.cond||b.conductor||'—'} · ${b.ruta||'—'}</div>
+      <div style="display:flex;gap:10px;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;">
+        <span>${b.vel} km/h</span><span>${b.km} km</span>
+      </div>
+    </div>`).join('');
+}
+
+window.selectBusGps = function(busId){
+  selectedBus=busId;
+  const datos = Object.keys(gpsData).length ? gpsData : GPS_DEMO;
+  const b = datos[busId]; if(!b) return;
+  leafletMap.flyTo([b.lat,b.lng],12,{duration:1.2});
+  leafletMarkers[busId]?.openPopup();
+  const sc=b.estado==='en_ruta'?'var(--green)':b.estado==='parado'?'var(--amber)':'var(--text3)';
+  document.getElementById('gps-detail-main').innerHTML=`
+    <div style="font-weight:600;font-size:13px;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${busId}
+      <span style="font-size:11px;font-weight:400;color:${sc};background:${sc}22;border:1px solid ${sc}44;border-radius:999px;padding:2px 8px;">${b.estado==='en_ruta'?'En ruta':b.estado==='parado'?'Parado':'Garaje'}</span>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">${b.cond||b.conductor||'—'} · ${b.ruta||'—'}</div>
+    <div class="gps-stats-row">
+      <div class="gstat"><div class="gstat-label">Velocidad</div><div class="gstat-val" style="color:${b.vel>0?'var(--green)':'var(--text2)'}">${b.vel}<span class="gstat-unit"> km/h</span></div></div>
+      <div class="gstat"><div class="gstat-label">Km hoy</div><div class="gstat-val">${b.km}<span class="gstat-unit"> km</span></div></div>
+      <div class="gstat"><div class="gstat-label">Coords</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);margin-top:4px;">${b.lat.toFixed(4)}, ${b.lng.toFixed(4)}</div></div>
+    </div>`;
+  document.getElementById('api-preview').innerHTML =
+    `<span class="ak">"bus_id"</span>: <span class="av2">"${busId}"</span>,\n`+
+    `<span class="ak">"lat"</span>: <span class="av2">${b.lat.toFixed(5)}</span>,\n`+
+    `<span class="ak">"lng"</span>: <span class="av2">${b.lng.toFixed(5)}</span>,\n`+
+    `<span class="ak">"speed_kmh"</span>: <span class="av2">${b.vel}</span>,\n`+
+    `<span class="ak">"km_today"</span>: <span class="av2">${b.km}</span>`;
+  renderGpsList();
+};
+
+window.setGpsFilter = function(f,btn){
+  gpsFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGpsList();
+};
+
+// ── LIQUIDACIÓN ──────────────────────────────────────────────
+function renderLiqSelector(){
+  const sel = document.getElementById('liq-t');
+  const prev = sel.value;
+  sel.innerHTML = conductoresCache.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  if(prev) sel.value=prev;
+  if(!sel.value && conductoresCache.length) sel.value=conductoresCache[0].id;
+  renderLiq();
+}
+
+window.renderLiq = function(){
+  const cId = document.getElementById('liq-t').value;
+  const mes  = document.getElementById('liq-m').value;
+  const c    = conductoresCache.find(x=>x.id===cId);
+  if(!c){ document.getElementById('liq-content').innerHTML='<div style="padding:20px;color:var(--text3)">Selecciona un conductor</div>'; return; }
+  const dh=23, base=c.sueldoBase||600000, days=c.dias_trabajados_mes||20, fer=c.feriados_mes||0;
+  const sp=Math.round(base/dh*days), vf=Math.round(base/dh*1.5), bf=fer*vf;
+  const imp=sp+bf;
+  const afpD=Math.round(imp*.1157), sisD=Math.round(imp*.0163), salD=Math.round(imp*.07), cesD=Math.round(imp*.006);
+  const td=afpD+sisD+salD+cesD, ri=imp-td, iusc=ri>1260000?Math.round((ri-1260000)*.04):0;
+  const liq=imp-td-iusc;
+  const ls=licStatus(c);
+  document.getElementById('liq-content').innerHTML=`
+    <div class="liq-hdr">
+      <div class="liq-empresa">Bus<span>Control</span> · ${session.empresa?.nombre||'Empresa'}</div>
+      <div class="liq-sub">RUT: ${session.empresa?.rut||'—'} · Transporte interurbano</div>
+      <div class="liq-grid">
+        <div class="liq-field"><div class="liq-field-label">Trabajador</div>${c.nombre}</div>
+        <div class="liq-field"><div class="liq-field-label">RUT</div>${c.rut||'—'}</div>
+        <div class="liq-field"><div class="liq-field-label">AFP</div>${c.afp||'—'} (11.57%)</div>
+        <div class="liq-field"><div class="liq-field-label">Salud</div>${c.salud||'—'} (7%)</div>
+        <div class="liq-field"><div class="liq-field-label">Período</div>${mes}</div>
+        <div class="liq-field"><div class="liq-field-label">Días trabajados</div>${days} de ${dh}</div>
+        <div class="liq-field"><div class="liq-field-label">Feriados</div>${fer}</div>
+        <div class="liq-field"><div class="liq-field-label">Licencia ${c.licClase||'A3'}</div><span style="color:${ls.color}">${ls.txt}</span></div>
+      </div>
+    </div>
+    <div class="liq-sec"><div class="liq-sec-title">Haberes</div>
+      <div class="liq-row"><span class="liq-row-lbl">Sueldo base</span><span class="liq-row-val">$${fmt(base)}</span></div>
+      <div class="liq-row"><span class="liq-row-lbl">Proporcional (${days}/${dh} días)</span><span class="liq-row-val">$${fmt(sp)}</span></div>
+      ${fer>0?`<div class="liq-row"><span class="liq-row-lbl">Feriados (${fer} × $${fmt(vf)} — 50%)</span><span class="liq-row-val" style="color:var(--amber)">$${fmt(bf)}</span></div>`:''}
+      <div class="liq-row" style="background:rgba(13,184,122,.05);"><span class="liq-row-lbl" style="font-weight:600">Total imponible</span><span class="liq-row-val" style="font-weight:600">$${fmt(imp)}</span></div>
+    </div>
+    <div class="liq-sec"><div class="liq-sec-title">Descuentos</div>
+      <div class="liq-row"><span class="liq-row-lbl">AFP ${c.afp||''} (11.57%)</span><span class="liq-row-val" style="color:var(--red)">–$${fmt(afpD)}</span></div>
+      <div class="liq-row"><span class="liq-row-lbl">SIS (1.63%)</span><span class="liq-row-val" style="color:var(--red)">–$${fmt(sisD)}</span></div>
+      <div class="liq-row"><span class="liq-row-lbl">${c.salud||'Fonasa'} (7%)</span><span class="liq-row-val" style="color:var(--red)">–$${fmt(salD)}</span></div>
+      <div class="liq-row"><span class="liq-row-lbl">Cesantía trabajador (0.6%)</span><span class="liq-row-val" style="color:var(--red)">–$${fmt(cesD)}</span></div>
+      <div class="liq-row" style="background:rgba(239,68,68,.04);"><span class="liq-row-lbl" style="font-weight:600">Total descuentos</span><span class="liq-row-val" style="color:var(--red);font-weight:600">–$${fmt(td)}</span></div>
+    </div>
+    <div class="liq-sec"><div class="liq-sec-title">IUSC</div>
+      <div class="liq-row"><span class="liq-row-lbl">Renta imponible</span><span class="liq-row-val">$${fmt(ri)}</span></div>
+      <div class="liq-row"><span class="liq-row-lbl">${iusc>0?'IUSC 4% sobre $1.260.000':'Sin impuesto — bajo primer tramo'}</span><span class="liq-row-val" style="${iusc>0?'color:var(--red)':'color:var(--text3)'}">–$${fmt(iusc)}</span></div>
+    </div>
+    <div class="liq-sec"><div class="liq-total"><div class="liq-total-lbl">Sueldo líquido</div><div class="liq-total-val">$${fmt(liq)}</div></div></div>
+    <div class="firma-grid">
+      <div class="firma-box">Firma trabajador<br><br><br>___________________________<br>${c.nombre}</div>
+      <div class="firma-box">Firma empleador<br><br><br>___________________________<br>${session.empresa?.nombre||'Empresa'}</div>
+    </div>`;
+};
+
+window.selLiq = function(id){ document.getElementById('liq-t').value=id; go('liquidacion',null); renderLiq(); };
+
+function renderRRHH(){
+  const tb = document.getElementById('rrhh-tbody');
+  if(!conductoresCache.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px;">Cargando…</td></tr>'; return; }
+  tb.innerHTML = conductoresCache.map((c,i)=>{
+    const dh=23,base=c.sueldoBase||600000,days=c.dias_trabajados_mes||20,fer=c.feriados_mes||0;
+    const sp=Math.round(base/dh*days),bf=fer*Math.round(base/dh*1.5),imp=sp+bf;
+    const td=Math.round(imp*(.1157+.0163+.07+.006));
+    const liq=imp-td-(imp-td>1260000?Math.round((imp-td-1260000)*.04):0);
+    return `<tr>
+      <td><div class="dc"><div class="av av-blue" style="background:#1e3560;color:#7aadff;">${(c.nombre||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase()}</div>${c.nombre||'—'}</div></td>
+      <td>${c.afp||'—'}</td><td style="font-size:11px;">${c.salud||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;">$${fmt(base)}</td>
+      <td>${days}</td>
+      <td>${fer>0?`<span class="badge b-info">${fer}</span>`:'0'}</td>
+      <td style="color:var(--green);font-family:'DM Mono',monospace;font-weight:500;">$${fmt(liq)}</td>
+      <td><button class="btn" style="font-size:10px;padding:3px 8px;" onclick="selLiq('${c.id}')">Ver →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── NAVEGACIÓN ───────────────────────────────────────────────
+const pageNames = {
+  dashboard:'Dashboard', alertas:'Alertas', planificacion:'Planificación diaria',
+  conductores:'Conductores', jornada:'Control de jornada', gps:'GPS — Flota en tiempo real',
+  rrhh:'Personal — RRHH', liquidacion:'Liquidación de sueldo',
+};
+
+window.go = function(name, navEl){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg = document.getElementById('page-'+name);
+  if(pg) pg.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(navEl) navEl.classList.add('active');
+  else document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = pageNames[name]||name;
+
+  if(name==='gps')      { initGPS(); setTimeout(()=>leafletMap.invalidateSize(),100); }
+  if(name==='jornada')  { initGantt(); }
+  if(name==='liquidacion') { renderLiq(); }
+};
+
+// ── CLOCK + TOAST ────────────────────────────────────────────
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+}
+
+window.showToast = function(msg, tipo=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+(tipo||'');
+  setTimeout(()=>t.classList.remove('show'),3500);
+};
+</script>
+</body>
+</html>
