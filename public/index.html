@@ -563,7 +563,10 @@ select:focus,input:focus{border-color:var(--accent);}
         </div>
         <div class="gps-map-wrap">
           <div id="map"></div>
-          <div class="gps-detail">
+          <div id="gps-alertas-banner" style="display:none;background:var(--red-bg);border-top:1px solid rgba(239,68,68,.2);padding:8px 16px;font-size:12px;color:var(--red);display:flex;align-items:center;gap:8px;">
+          <span style="font-weight:600;">Alerta GPS:</span><span id="gps-alerta-txt"></span>
+        </div>
+        <div class="gps-detail">
             <div class="gps-detail-main" id="gps-detail-main">
               <div style="color:var(--text3);font-size:12px;padding-top:20px;">Selecciona un bus para ver el detalle</div>
             </div>
@@ -576,16 +579,51 @@ select:focus,input:focus{border-color:var(--accent);}
       </div>
     </div>
 
-    <!-- RRHH -->
+    <!-- RRHH = Importar/Exportar -->
     <div id="page-rrhh" class="page">
-      <div class="sec-hdr">
-        <div class="sec-lbl">Personal — datos desde Firebase</div>
-        <button class="btn btn-primary" style="font-size:11px;" onclick="openModalAdd()">+ Agregar trabajador</button>
+      <div class="sec-lbl" style="margin-bottom:14px;">Importar y exportar datos</div>
+
+      <!-- IMPORTAR CONDUCTORES -->
+      <div class="tcard" style="padding:18px;margin-bottom:16px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:6px;">Importar conductores desde Excel</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+          Sube un archivo .xlsx con los conductores. El sistema los agrega todos a Firebase automáticamente.<br>
+          <span style="color:var(--text3);">Columnas requeridas: <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">nombre · rut · afp · salud · sueldo_base · lic_clase · lic_vencimiento</code></span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+          <input type="file" id="import-file" accept=".xlsx,.xls" style="flex:1;" onchange="previewImport(this)">
+          <button class="btn btn-primary" style="font-size:11px;" onclick="importarConductores()">Importar a Firebase</button>
+          <button class="btn" style="font-size:11px;" onclick="descargarPlantilla()">Descargar plantilla</button>
+        </div>
+        <div id="import-preview" style="display:none;">
+          <div class="sec-lbl" style="margin-bottom:8px;">Vista previa — primeras filas</div>
+          <div class="tcard" style="margin-bottom:0;">
+            <table><thead id="import-thead"></thead><tbody id="import-tbody"></tbody></table>
+          </div>
+          <div id="import-status" style="margin-top:10px;font-size:12px;"></div>
+        </div>
       </div>
-      <div class="tcard"><table>
-        <thead><tr><th>Trabajador</th><th>AFP</th><th>Salud</th><th>Sueldo base</th><th>Días trab.</th><th>Feriados</th><th>Líquido aprox.</th><th></th></tr></thead>
-        <tbody id="rrhh-tbody"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px;">Cargando desde Firebase…</td></tr></tbody>
-      </table></div>
+
+      <!-- EXPORTAR -->
+      <div class="tcard" style="padding:18px;margin-bottom:16px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:6px;">Exportar datos</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Descarga los datos del sistema en Excel para respaldo o para compartir.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" style="font-size:11px;" onclick="exportarConductores()">Exportar conductores</button>
+          <button class="btn btn-primary" style="font-size:11px;" onclick="exportarTurnos()">Exportar turnos del mes</button>
+          <button class="btn" style="font-size:11px;" onclick="exportarLiquidaciones()">Exportar liquidaciones</button>
+        </div>
+      </div>
+
+      <!-- GESTIONAR RUTAS -->
+      <div class="tcard" style="padding:18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-weight:600;font-size:13px;">Gestionar rutas</div>
+          <button class="btn btn-primary" style="font-size:11px;" onclick="openModalRuta()">+ Nueva ruta</button>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Agrega, edita o elimina las rutas que usa la empresa. Estas aparecen al planificar turnos.</div>
+        <div id="rutas-list"><div style="color:var(--text3);font-size:12px;">Cargando rutas…</div></div>
+      </div>
     </div>
 
     <!-- LIQUIDACIÓN -->
@@ -625,10 +663,21 @@ select:focus,input:focus{border-color:var(--accent);}
     <div class="form-grid-3">
       <div class="form-group"><div class="form-label">Sueldo base</div><input type="number" id="ed-sueldo"></div>
       <div class="form-group"><div class="form-label">AFP</div>
-        <select id="ed-afp"><option>Habitat</option><option>Capital</option><option>Cuprum</option><option>Modelo</option><option>Planvital</option><option>ProVida</option><option>Uno</option></select>
+        <input type="text" id="ed-afp" list="afp-list" placeholder="Escribe o selecciona...">
+        <datalist id="afp-list">
+          <option>Habitat</option><option>Capital</option><option>Cuprum</option>
+          <option>Modelo</option><option>Planvital</option><option>ProVida</option><option>Uno</option>
+        </datalist>
       </div>
-      <div class="form-group"><div class="form-label">Salud</div>
-        <select id="ed-salud"><option>Fonasa</option><option>Isapre Banmédica</option><option>Isapre Cruz Blanca</option><option>Isapre Colmena</option></select>
+      <div class="form-group"><div class="form-label">Previsión salud</div>
+        <input type="text" id="ed-salud" list="salud-list" placeholder="Escribe o selecciona...">
+        <datalist id="salud-list">
+          <option>Fonasa</option>
+          <option>Isapre Banmédica</option><option>Isapre Cruz Blanca</option>
+          <option>Isapre Colmena</option><option>Isapre Consalud</option>
+          <option>Isapre Vida Tres</option><option>Isapre Esencial</option>
+          <option>Isapre MasVida</option>
+        </datalist>
       </div>
     </div>
     <div class="modal-actions">
@@ -653,8 +702,23 @@ select:focus,input:focus{border-color:var(--accent);}
     </div>
     <div class="form-grid-3">
       <div class="form-group"><div class="form-label">Sueldo base</div><input type="number" id="add-sueldo" placeholder="600000"></div>
-      <div class="form-group"><div class="form-label">AFP</div><select id="add-afp"><option>Habitat</option><option>Capital</option><option>Cuprum</option><option>Modelo</option></select></div>
-      <div class="form-group"><div class="form-label">Salud</div><select id="add-salud"><option>Fonasa</option><option>Isapre Colmena</option><option>Isapre Banmédica</option></select></div>
+      <div class="form-group"><div class="form-label">AFP</div>
+        <input type="text" id="add-afp" list="afp-list2" placeholder="Escribe o selecciona...">
+        <datalist id="afp-list2">
+          <option>Habitat</option><option>Capital</option><option>Cuprum</option>
+          <option>Modelo</option><option>Planvital</option><option>ProVida</option><option>Uno</option>
+        </datalist>
+      </div>
+      <div class="form-group"><div class="form-label">Previsión salud</div>
+        <input type="text" id="add-salud" list="salud-list2" placeholder="Escribe o selecciona...">
+        <datalist id="salud-list2">
+          <option>Fonasa</option>
+          <option>Isapre Banmédica</option><option>Isapre Cruz Blanca</option>
+          <option>Isapre Colmena</option><option>Isapre Consalud</option>
+          <option>Isapre Vida Tres</option><option>Isapre Esencial</option>
+          <option>Isapre MasVida</option>
+        </datalist>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModalAdd()">Cancelar</button>
@@ -663,10 +727,39 @@ select:focus,input:focus{border-color:var(--accent);}
   </div>
 </div>
 
+<!-- MODAL NUEVA RUTA -->
+<div class="modal-ov" id="modal-ruta">
+  <div class="modal">
+    <div class="modal-title">Gestionar ruta</div>
+    <div class="form-grid-2" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Nombre de la ruta</div><input type="text" id="ruta-nombre" placeholder="Ej: Talca → Santiago"></div>
+      <div class="form-group"><div class="form-label">Duración estimada (horas)</div><input type="number" id="ruta-dur" placeholder="3.5" step="0.5" min="0.5" max="8"></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Origen</div><input type="text" id="ruta-origen" placeholder="Talca"></div>
+      <div class="form-group"><div class="form-label">Destino</div><input type="text" id="ruta-destino" placeholder="Santiago"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <div class="form-label">Horarios de salida habituales (separados por coma)</div>
+      <input type="text" id="ruta-horarios" placeholder="06:00, 10:00, 14:00, 18:00">
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <div class="form-label">Observaciones</div>
+      <input type="text" id="ruta-obs" placeholder="Ej: Solo días hábiles, incluye parada en Curicó...">
+    </div>
+    <div id="ruta-id-edit" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModalRuta()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarRuta()">Guardar ruta</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- LEAFLET -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <!-- FIREBASE + APP (ES modules) -->
 <script type="module">
@@ -1508,6 +1601,293 @@ window.showToast = function(msg, tipo=''){
   t.textContent=msg; t.className='toast show '+(tipo||'');
   setTimeout(()=>t.classList.remove('show'),3500);
 };
+
+// ── RUTAS EN FIRESTORE ────────────────────────────────────────
+let rutasCache = [];
+
+async function cargarRutas(){
+  try {
+    const snap = await getDocs(collection(db,'empresas',session.empresaId,'rutas'));
+    rutasCache = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderRutasList();
+    actualizarSelectorRutas();
+  } catch(e){ console.warn('Rutas:', e.message); }
+}
+
+function renderRutasList(){
+  const el = document.getElementById('rutas-list');
+  if(!el) return;
+  if(!rutasCache.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:12px;">Sin rutas registradas. Agrega la primera ruta con el botón de arriba.</div>';
+    return;
+  }
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;">
+    <thead><tr>
+      <th style="font-size:10px;color:var(--text3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);">Ruta</th>
+      <th style="font-size:10px;color:var(--text3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);">Duración</th>
+      <th style="font-size:10px;color:var(--text3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);">Horarios</th>
+      <th style="font-size:10px;color:var(--text3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);">Obs.</th>
+      <th style="font-size:10px;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg3);"></th>
+    </tr></thead>
+    <tbody>${rutasCache.map(r=>`<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:500;">${r.nombre||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);">${r.duracionH||'—'} h</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${r.horarios||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);">${r.obs||''}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;">
+        <button class="btn" style="font-size:10px;padding:3px 8px;" onclick="editarRuta('${r.id}')">Editar</button>
+        <button class="btn btn-danger" style="font-size:10px;padding:3px 8px;" onclick="eliminarRuta('${r.id}')">Eliminar</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function actualizarSelectorRutas(){
+  const sel = document.getElementById('pf-ruta');
+  if(!sel) return;
+  const opts = rutasCache.map(r=>`<option value="${r.id}">${r.nombre} (${r.duracionH} h)</option>`).join('');
+  sel.innerHTML = '<option value="">— Seleccionar ruta —</option>' + opts;
+}
+
+window.openModalRuta = function(){
+  document.getElementById('ruta-id-edit').textContent='';
+  document.getElementById('ruta-nombre').value='';
+  document.getElementById('ruta-dur').value='';
+  document.getElementById('ruta-origen').value='';
+  document.getElementById('ruta-destino').value='';
+  document.getElementById('ruta-horarios').value='';
+  document.getElementById('ruta-obs').value='';
+  document.getElementById('modal-ruta').classList.add('open');
+};
+
+window.closeModalRuta = ()=>document.getElementById('modal-ruta').classList.remove('open');
+
+window.editarRuta = function(id){
+  const r = rutasCache.find(x=>x.id===id); if(!r) return;
+  document.getElementById('ruta-id-edit').textContent=id;
+  document.getElementById('ruta-nombre').value=r.nombre||'';
+  document.getElementById('ruta-dur').value=r.duracionH||'';
+  document.getElementById('ruta-origen').value=r.origen||'';
+  document.getElementById('ruta-destino').value=r.destino||'';
+  document.getElementById('ruta-horarios').value=r.horarios||'';
+  document.getElementById('ruta-obs').value=r.obs||'';
+  document.getElementById('modal-ruta').classList.add('open');
+};
+
+window.guardarRuta = async function(){
+  const nombre = document.getElementById('ruta-nombre').value.trim();
+  const dur    = parseFloat(document.getElementById('ruta-dur').value)||0;
+  if(!nombre||!dur){ showToast('Nombre y duración son obligatorios','err'); return; }
+  const datos = {
+    nombre, duracionH:dur,
+    origen:   document.getElementById('ruta-origen').value.trim(),
+    destino:  document.getElementById('ruta-destino').value.trim(),
+    horarios: document.getElementById('ruta-horarios').value.trim(),
+    obs:      document.getElementById('ruta-obs').value.trim(),
+    updatedAt: serverTimestamp(),
+  };
+  try {
+    const editId = document.getElementById('ruta-id-edit').textContent;
+    if(editId){
+      await updateDoc(doc(db,'empresas',session.empresaId,'rutas',editId), datos);
+      showToast('Ruta actualizada ✓','ok');
+    } else {
+      datos.createdAt = serverTimestamp();
+      await addDoc(collection(db,'empresas',session.empresaId,'rutas'), datos);
+      showToast('Ruta creada ✓','ok');
+    }
+    closeModalRuta();
+    cargarRutas();
+  } catch(e){ showToast('Error: '+e.message,'err'); }
+};
+
+window.eliminarRuta = async function(id){
+  if(!confirm('¿Eliminar esta ruta?')) return;
+  try {
+    const { deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await deleteDoc(doc(db,'empresas',session.empresaId,'rutas',id));
+    showToast('Ruta eliminada','ok');
+    cargarRutas();
+  } catch(e){ showToast('Error: '+e.message,'err'); }
+};
+
+// ── IMPORTAR DESDE EXCEL ─────────────────────────────────────
+let importData = [];
+
+window.previewImport = function(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, {type:'binary'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, {defval:''});
+    importData = data;
+    if(!data.length){ showToast('El archivo está vacío','err'); return; }
+    const cols = Object.keys(data[0]);
+    document.getElementById('import-thead').innerHTML =
+      '<tr>'+cols.map(c=>`<th style="font-size:10px;color:var(--text3);padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);">${c}</th>`).join('')+'</tr>';
+    document.getElementById('import-tbody').innerHTML =
+      data.slice(0,5).map(row=>'<tr>'+cols.map(c=>`<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;">${row[c]||''}</td>`).join('')+'</tr>').join('');
+    document.getElementById('import-preview').style.display='block';
+    document.getElementById('import-status').innerHTML=
+      `<span style="color:var(--green);">${data.length} filas encontradas — listo para importar</span>`;
+  };
+  reader.readAsBinaryString(file);
+};
+
+window.importarConductores = async function(){
+  if(!importData.length){ showToast('Carga un archivo primero','err'); return; }
+  const status = document.getElementById('import-status');
+  status.innerHTML='<span style="color:var(--amber);">Importando… no cierres esta ventana</span>';
+  let ok=0, err=0;
+  for(const row of importData){
+    const nombre = row['nombre']||row['Nombre']||'';
+    const rut    = row['rut']||row['RUT']||row['Rut']||'';
+    if(!nombre||!rut){ err++; continue; }
+    try {
+      await addDoc(collection(db,'empresas',session.empresaId,'conductores'),{
+        nombre: nombre.toString().trim(),
+        rut:    rut.toString().trim(),
+        nombre_tokens: tokenizar(nombre.toString()),
+        rut_tokens:    tokenizarRut(rut.toString()),
+        afp:           (row['afp']||row['AFP']||'Habitat').toString().trim(),
+        salud:         (row['salud']||row['Salud']||'Fonasa').toString().trim(),
+        sueldoBase:    parseFloat(row['sueldo_base']||row['Sueldo']||600000)||600000,
+        licClase:      (row['lic_clase']||row['Licencia']||'A3').toString().trim(),
+        licVencimiento: row['lic_vencimiento'] ? new Date(row['lic_vencimiento']) : null,
+        estado:               'activo',
+        horas_conduccion_hoy: 0,
+        horas_jornada_hoy:    0,
+        dias_trabajados_mes:  0,
+        feriados_mes:         0,
+        createdAt:            serverTimestamp(),
+        updatedAt:            serverTimestamp(),
+      });
+      ok++;
+    } catch(e){ err++; }
+  }
+  status.innerHTML=`<span style="color:var(--green);">✓ ${ok} conductores importados correctamente${err>0?' · '+err+' con errores':''}</span>`;
+  showToast(`${ok} conductores importados a Firebase ✓`,'ok');
+  importData=[];
+};
+
+window.descargarPlantilla = function(){
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['nombre','rut','afp','salud','sueldo_base','lic_clase','lic_vencimiento'],
+    ['Juan Pérez Soto','12.345.678-9','Habitat','Fonasa',600000,'A3','2027-06-30'],
+    ['María González','13.456.789-0','Capital','Isapre Colmena',600000,'A3','2028-03-15'],
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Conductores');
+  XLSX.writeFile(wb, 'plantilla_conductores.xlsx');
+  showToast('Plantilla descargada ✓','ok');
+};
+
+// ── EXPORTAR DATOS ────────────────────────────────────────────
+window.exportarConductores = function(){
+  if(!conductoresCache.length){ showToast('Sin conductores para exportar','err'); return; }
+  const data = conductoresCache.map(c=>({
+    Nombre:       c.nombre||'',
+    RUT:          c.rut||'',
+    AFP:          c.afp||'',
+    Salud:        c.salud||'',
+    'Sueldo base':c.sueldoBase||0,
+    Licencia:     c.licClase||'A3',
+    'Días mes':   c.dias_trabajados_mes||0,
+    Estado:       c.estado||'activo',
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Conductores');
+  XLSX.writeFile(wb, `conductores_${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast('Conductores exportados ✓','ok');
+};
+
+window.exportarTurnos = async function(){
+  try {
+    const hoy = new Date();
+    const ini = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
+    const fin = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0).toISOString().split('T')[0];
+    const snap = await getDocs(query(
+      collection(db,'empresas',session.empresaId,'turnos'),
+      where('fecha','>=',ini), where('fecha','<=',fin)
+    ));
+    const data = snap.docs.map(d=>{
+      const t=d.data();
+      return { Fecha:t.fecha||'', Conductor:t.conductorNombre||'', Ruta:t.rutaNombre||'', Bus:t.busId||'', Salida:t.horaSalida||'', Estado:t.estado||'' };
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Turnos');
+    XLSX.writeFile(wb, `turnos_${ini}_${fin}.xlsx`);
+    showToast('Turnos exportados ✓','ok');
+  } catch(e){ showToast('Error: '+e.message,'err'); }
+};
+
+window.exportarLiquidaciones = function(){
+  if(!conductoresCache.length){ showToast('Sin datos para exportar','err'); return; }
+  const dh=23;
+  const data = conductoresCache.map(c=>{
+    const base=c.sueldoBase||600000, days=c.dias_trabajados_mes||20, fer=c.feriados_mes||0;
+    const sp=Math.round(base/dh*days), bf=fer*Math.round(base/dh*1.5), imp=sp+bf;
+    const td=Math.round(imp*(.1157+.0163+.07+.006));
+    const liq=imp-td-(imp-td>1260000?Math.round((imp-td-1260000)*.04):0);
+    return { Nombre:c.nombre||'', RUT:c.rut||'', AFP:c.afp||'', Salud:c.salud||'',
+      'Sueldo base':base, 'Días trabajados':days, Feriados:fer,
+      'Total imponible':imp, 'Total descuentos':td, 'Sueldo líquido':liq };
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Liquidaciones');
+  XLSX.writeFile(wb, `liquidaciones_${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast('Liquidaciones exportadas ✓','ok');
+};
+
+// ── ALERTAS GPS — bus detenido o atrasado ────────────────────
+let gpsAlertaInterval = null;
+
+function iniciarMonitorGPS(){
+  if(gpsAlertaInterval) clearInterval(gpsAlertaInterval);
+  gpsAlertaInterval = setInterval(()=>{
+    const datos = Object.keys(gpsData).length ? gpsData : GPS_DEMO;
+    const alertas = [];
+    Object.entries(datos).forEach(([busId,b])=>{
+      if(b.estado==='en_ruta' && b.vel < 5 && b.km > 5){
+        alertas.push(`${busId} detenido en ruta (${b.ruta})`);
+      }
+      if(b.estado==='en_ruta' && b.vel < 30 && b.vel >= 5){
+        alertas.push(`${busId} circulando muy lento — posible atraso (${b.vel} km/h)`);
+      }
+    });
+    const banner = document.getElementById('gps-alertas-banner');
+    if(banner){
+      if(alertas.length){
+        banner.style.display='flex';
+        document.getElementById('gps-alerta-txt').textContent = alertas.join(' · ');
+        if(alertas.length && !banner.dataset.notified){
+          showToast('Alerta GPS: '+alertas[0],'err');
+          banner.dataset.notified='1';
+        }
+      } else {
+        banner.style.display='none';
+        delete banner.dataset.notified;
+      }
+    }
+  }, 15000);
+}
+
+// Hook into iniciarListeners to also load routes and start GPS monitor
+const _origIniciarListeners = iniciarListeners;
+// Patch: after listeners start, also load rutas and start GPS monitor
+setTimeout(()=>{
+  const origGo = window.go;
+  window.go = function(name, navEl){
+    origGo(name, navEl);
+    if(name==='rrhh') { cargarRutas(); }
+    if(name==='gps')  { iniciarMonitorGPS(); }
+  };
+},500);
+
 </script>
 </body>
 </html>
