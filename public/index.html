@@ -241,6 +241,10 @@ select:focus,input:focus{border-color:var(--accent);}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7" r="3"/><path d="M8 1a6 6 0 016 6c0 4-6 9-6 9S2 11 2 7a6 6 0 016-6z"/></svg>
       GPS — Flota
     </div>
+    <div class="nav-item" onclick="go('buses',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="2"/><circle cx="4" cy="13" r="1.5" fill="currentColor"/><circle cx="12" cy="13" r="1.5" fill="currentColor"/><line x1="1" y1="8" x2="15" y2="8"/><line x1="5" y1="4" x2="5" y2="8"/><line x1="11" y1="4" x2="11" y2="8"/></svg>
+      Buses — Ficha
+    </div>
     <div class="nav-item" onclick="go('importar',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m-3-3l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
       Importar / Exportar
@@ -377,6 +381,26 @@ select:focus,input:focus{border-color:var(--accent);}
       </div>
     </div>
 
+    <div id="page-buses" class="page">
+      <div class="sec-hdr">
+        <div class="sec-lbl">Flota — fichas de buses</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="search-bus" placeholder="Patente o nombre…" style="width:180px;" oninput="filtrarBuses(this.value)">
+          <button class="btn btn-sm" onclick="openModalBus()">+ Agregar bus</button>
+          <button class="btn btn-primary btn-sm" onclick="importarBusesExcel()">Importar Excel</button>
+          <button class="btn btn-sm" onclick="descargarPlantillaBuses()">Plantilla Excel</button>
+        </div>
+      </div>
+      <input type="file" id="import-buses-file" accept=".xlsx,.xls" style="display:none;" onchange="procesarImportBuses(this)">
+      <div style="margin-bottom:12px;display:flex;gap:8px;">
+        <button class="btn btn-sm" onclick="filtrarEstadoBus('todos')" id="fb-todos" style="border-color:var(--accent);color:var(--accent);">Todos</button>
+        <button class="btn btn-sm" onclick="filtrarEstadoBus('vencido')" id="fb-vencido">Vencido</button>
+        <button class="btn btn-sm" onclick="filtrarEstadoBus('proximo')" id="fb-proximo">Por vencer</button>
+        <button class="btn btn-sm" onclick="filtrarEstadoBus('ok')" id="fb-ok">Al día</button>
+      </div>
+      <div id="buses-list"><div style="color:var(--text3);font-size:12px;padding:12px;">Cargando buses…</div></div>
+    </div>
+
     <div id="page-alertas" class="page">
       <div class="sec-lbl" style="margin-bottom:10px;">Alertas activas</div>
       <div class="tcard" id="all-alerts"><div style="padding:14px;color:var(--text3);">Sin alertas activas</div></div>
@@ -485,16 +509,31 @@ select:focus,input:focus{border-color:var(--accent);}
 <!-- MODAL BUS -->
 <div class="modal-ov" id="modal-bus">
   <div class="modal">
-    <div class="modal-title">Gestionar bus</div>
+    <div class="modal-title" id="bus-modal-title">Agregar bus</div>
     <div class="form-grid-2" style="margin-bottom:10px;">
       <div class="form-group"><div class="form-label">Nombre / número *</div><input type="text" id="bus-nombre" placeholder="Bus 03"></div>
-      <div class="form-group"><div class="form-label">Patente</div><input type="text" id="bus-patente" placeholder="ABCD12"></div>
+      <div class="form-group"><div class="form-label">Patente *</div><input type="text" id="bus-patente" placeholder="ABCD·12"></div>
     </div>
-    <div class="form-grid-2" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Marca y modelo</div><input type="text" id="bus-modelo" placeholder="Mercedes Benz O500"></div>
+    <div class="form-grid-3" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Marca</div><input type="text" id="bus-marca" placeholder="Mercedes Benz"></div>
+      <div class="form-group"><div class="form-label">Modelo</div><input type="text" id="bus-modelo" placeholder="O500"></div>
       <div class="form-group"><div class="form-label">Año</div><input type="number" id="bus-anio" placeholder="2018"></div>
     </div>
-    <div class="form-group" style="margin-bottom:4px;"><div class="form-label">Observaciones</div><input type="text" id="bus-obs" placeholder="Solo rutas largas, revisión pendiente…"></div>
+    <div class="form-grid-2" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Km actuales</div><input type="number" id="bus-km" placeholder="85000"></div>
+      <div class="form-group"><div class="form-label">Capacidad pasajeros</div><input type="number" id="bus-cap" placeholder="46"></div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;margin-top:4px;">Vencimientos — el sistema genera alertas 30 días antes</div>
+    <div class="form-grid-3" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Revisión técnica</div><input type="date" id="bus-rtec"><div class="form-hint" id="bus-rtec-hint"></div></div>
+      <div class="form-group"><div class="form-label">Permiso de circulación</div><input type="date" id="bus-pcirc"><div class="form-hint" id="bus-pcirc-hint"></div></div>
+      <div class="form-group"><div class="form-label">Próxima mantención</div><input type="date" id="bus-mant"><div class="form-hint" id="bus-mant-hint"></div></div>
+    </div>
+    <div class="form-grid-2" style="margin-bottom:10px;">
+      <div class="form-group"><div class="form-label">Última pintura</div><input type="date" id="bus-pintura"></div>
+      <div class="form-group"><div class="form-label">Seguro vigente hasta</div><input type="date" id="bus-seguro"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:4px;"><div class="form-label">Observaciones</div><input type="text" id="bus-obs" placeholder="Ej: solo rutas cortas, asientos reclinables, AC…"></div>
     <input type="hidden" id="bus-id">
     <div class="modal-actions">
       <button class="btn" onclick="closeModalBus()">Cancelar</button>
@@ -582,7 +621,7 @@ function iniciarApp(){
     document.getElementById('badge-al').textContent=alertas.length;
     renderAlertas();
   }));
-  cargarRutas();cargarBuses();cargarViajesHoy();
+  cargarRutas();cargarBusesCompleto();cargarViajesHoy();inicializarRutasDefault();
   updateClock();setInterval(updateClock,30000);
 }
 
@@ -645,27 +684,8 @@ window.eliminarRuta=async function(id){
 };
 
 // BUSES
-async function cargarBuses(){
-  const sn=await getDocs(collection(db,'empresas',S.eId,'buses'));
-  buses=sn.docs.map(d=>({id:d.id,...d.data()}));actualizarSels();
-}
-window.openModalBus=function(){
-  ['bus-nombre','bus-patente','bus-modelo','bus-anio','bus-obs'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('bus-id').value='';
-  document.getElementById('modal-bus').classList.add('open');
-};
-window.closeModalBus=()=>document.getElementById('modal-bus').classList.remove('open');
-window.guardarBus=async function(){
-  const nombre=document.getElementById('bus-nombre').value.trim();
-  if(!nombre){showToast('El nombre es obligatorio','err');return;}
-  const d={nombre,patente:document.getElementById('bus-patente').value.trim(),modelo:document.getElementById('bus-modelo').value.trim(),año:parseInt(document.getElementById('bus-anio').value)||0,obs:document.getElementById('bus-obs').value.trim(),updatedAt:serverTimestamp()};
-  try{
-    const id=document.getElementById('bus-id').value;
-    if(id)await updateDoc(doc(db,'empresas',S.eId,'buses',id),d);
-    else{d.createdAt=serverTimestamp();await addDoc(collection(db,'empresas',S.eId,'buses'),d);}
-    closeModalBus();showToast('Bus guardado ✓','ok');cargarBuses();
-  }catch(e){showToast('Error: '+e.message,'err');}
-};
+// cargarBuses replaced by cargarBusesCompleto
+// bus fns moved to flota section
 
 // SELECTORES
 function actualizarSels(){
@@ -1082,7 +1102,285 @@ window.exportarPersonal=function(tipo){
 };
 
 // NAVEGACIÓN
-const pNames={dashboard:'Dashboard',alertas:'Alertas',planificacion:'Planificar viaje',historial:'Historial de viajes',rutas:'Rutas',conductores:'Conductores',auxiliares:'Auxiliares',gps:'GPS — Flota',importar:'Importar / Exportar'};
+const pNames={dashboard:'Dashboard',alertas:'Alertas',planificacion:'Planificar viaje',historial:'Historial de viajes',rutas:'Rutas',conductores:'Conductores',auxiliares:'Auxiliares',gps:'GPS — Flota',buses:'Flota — fichas de buses',importar:'Importar / Exportar'};
+
+// ── BUSES / FLOTA ─────────────────────────────────────────
+const RUTAS_DEFAULT = [
+  {nombre:'Talca → Santiago',duracionH:3,origen:'Talca',destino:'Santiago',horarios:'06:00, 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00',obs:'Ruta principal · Autopista del Maule'},
+  {nombre:'Santiago → Talca',duracionH:3,origen:'Santiago',destino:'Talca',horarios:'06:00, 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00',obs:'Ruta principal · retorno'},
+  {nombre:'Talca → Curicó',duracionH:1.5,origen:'Talca',destino:'Curicó',horarios:'07:00, 09:00, 11:00, 13:00, 15:00, 17:00',obs:'Ruta regional'},
+  {nombre:'Curicó → Talca',duracionH:1.5,origen:'Curicó',destino:'Talca',horarios:'07:30, 09:30, 11:30, 13:30, 15:30, 17:30',obs:'Retorno regional'},
+  {nombre:'Talca → Constitución',duracionH:2,origen:'Talca',destino:'Constitución',horarios:'07:00, 11:00, 15:00',obs:'Ruta costera · Región del Maule'},
+  {nombre:'Talca → Linares',duracionH:1.2,origen:'Talca',destino:'Linares',horarios:'07:00, 09:00, 11:00, 13:00, 16:00',obs:''},
+  {nombre:'Talca → Chillán',duracionH:2.5,origen:'Talca',destino:'Chillán',horarios:'07:00, 10:00, 14:00, 17:00',obs:'Ruta sur'},
+  {nombre:'Talca → Rancagua',duracionH:2.8,origen:'Talca',destino:'Rancagua',horarios:'06:30, 10:00, 14:00, 17:30',obs:'Vía San Fernando'},
+  {nombre:'Talca → San Fernando',duracionH:2,origen:'Talca',destino:'San Fernando',horarios:'07:00, 11:00, 15:00, 18:00',obs:''},
+];
+
+async function inicializarRutasDefault(){
+  const sn=await getDocs(collection(db,'empresas',S.eId,'rutas'));
+  if(sn.empty){
+    for(const r of RUTAS_DEFAULT){
+      await addDoc(collection(db,'empresas',S.eId,'rutas'),{...r,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    }
+    showToast('Rutas de Altas Cumbres cargadas ✓','ok');
+    cargarRutas();
+  }
+}
+
+async function cargarBusesCompleto(){
+  const sn=await getDocs(query(collection(db,'empresas',S.eId,'buses'),orderBy('nombre','asc')));
+  buses=sn.docs.map(d=>({id:d.id,...d.data()}));
+  actualizarSels();
+  renderBusesList(buses);
+  verificarAlertasBuses();
+}
+
+function diasHasta(fecha){
+  if(!fecha) return null;
+  const v=fecha.toDate?fecha.toDate():new Date(fecha);
+  return Math.round((v-new Date())/(864e5));
+}
+
+function estadoBus(b){
+  const fechas=[
+    {key:'revisionTecnica',label:'Rev. técnica'},
+    {key:'permisoCirculacion',label:'Perm. circulación'},
+    {key:'proximaMantencion',label:'Mantención'},
+    {key:'seguro',label:'Seguro'},
+  ];
+  let worst='ok';
+  for(const f of fechas){
+    if(!b[f.key]) continue;
+    const d=diasHasta(b[f.key]);
+    if(d<0){worst='vencido';break;}
+    if(d<=30&&worst!=='vencido') worst='proximo';
+  }
+  return worst;
+}
+
+function renderBusesList(lista){
+  const el=document.getElementById('buses-list');if(!el)return;
+  if(!lista.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:12px;">Sin buses registrados. Agrega el primero o importa desde Excel.</div>';return;}
+  el.innerHTML=lista.map(b=>{
+    const est=estadoBus(b);
+    const estBadge=est==='vencido'?'<span class="badge b-danger">Vencido</span>':est==='proximo'?'<span class="badge b-warn">Por vencer</span>':'<span class="badge b-ok">Al día</span>';
+    const campos=[
+      {key:'revisionTecnica',label:'Rev. técnica'},
+      {key:'permisoCirculacion',label:'Perm. circ.'},
+      {key:'proximaMantencion',label:'Mantención'},
+      {key:'seguro',label:'Seguro'},
+    ];
+    const fechasHtml=campos.map(f=>{
+      if(!b[f.key]) return `<div><div class="exp-label">${f.label}</div><div class="exp-val" style="color:var(--text3);">—</div></div>`;
+      const d=diasHasta(b[f.key]);
+      const v=b[f.key].toDate?b[f.key].toDate():new Date(b[f.key]);
+      const col=d<0?'var(--red)':d<=30?'var(--amber)':'var(--green)';
+      const txt=d<0?`Vencida hace ${Math.abs(d)} días`:d<=30?`Vence en ${d} días`:`Vigente · ${d} días`;
+      return `<div><div class="exp-label">${f.label}</div><div class="exp-val" style="color:${col};font-size:11px;">${v.toLocaleDateString('es-CL')} · ${txt}</div></div>`;
+    }).join('');
+    return `<div class="person-row" id="br-${b.id}">
+      <div class="person-hdr" onclick="toggleBus('${b.id}')">
+        <div class="av av-blue" style="width:30px;height:30px;font-size:10px;font-weight:700;">${(b.nombre||'B').replace('Bus ','')}</div>
+        <div style="flex:1;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:10px;">
+          <div><div style="font-weight:600;font-size:12px;">${b.nombre||'—'}</div><div style="font-size:10px;color:var(--text3);">${b.patente||'Sin patente'}</div></div>
+          <div style="font-size:11px;color:var(--text2);">${b.marca||''} ${b.modelo||''}</div>
+          <div style="font-size:11px;color:var(--text3);">${b.año||b.anio||'—'} · ${b.km?b.km.toLocaleString('es-CL')+' km':'—'}</div>
+          <div style="font-size:11px;color:var(--text3);">${b.capacidad?b.capacidad+' pasajeros':'—'}</div>
+          <div>${estBadge}</div>
+          <button class="btn btn-sm" onclick="event.stopPropagation();editarBus('${b.id}')">Editar</button>
+        </div>
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3);flex-shrink:0;transition:transform .2s;" id="ba-${b.id}"><polyline points="2,4 6.5,8.5 11,4"/></svg>
+      </div>
+      <div class="person-expand" id="be-${b.id}">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;">
+          ${fechasHtml}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border);">
+          <div class="exp-sec"><div class="exp-label">Última pintura</div><div class="exp-val">${b.pintura?(b.pintura.toDate?b.pintura.toDate():new Date(b.pintura)).toLocaleDateString('es-CL'):'—'}</div></div>
+          <div class="exp-sec"><div class="exp-label">Observaciones</div><div class="exp-val" style="font-size:11px;">${b.obs||'—'}</div></div>
+        </div>
+        <div class="exp-actions">
+          <button class="btn btn-sm" onclick="editarBus('${b.id}')">Editar ficha</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarBus('${b.id}')">Eliminar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleBus=function(id){
+  const r=document.getElementById('br-'+id),a=document.getElementById('ba-'+id);
+  const o=r.classList.contains('open');
+  document.querySelectorAll('.person-row').forEach(x=>x.classList.remove('open'));
+  document.querySelectorAll('[id^="ba-"]').forEach(x=>x.style.transform='');
+  if(!o){r.classList.add('open');a.style.transform='rotate(180deg)';}
+};
+
+window.filtrarBuses=function(term){
+  const t=term.toLowerCase();
+  const f=!t?buses:buses.filter(b=>(b.nombre||'').toLowerCase().includes(t)||(b.patente||'').toLowerCase().includes(t)||(b.marca||'').toLowerCase().includes(t));
+  renderBusesList(f);
+};
+
+let filtroEstBus='todos';
+window.filtrarEstadoBus=function(est){
+  filtroEstBus=est;
+  document.querySelectorAll('[id^="fb-"]').forEach(b=>{b.style.borderColor='';b.style.color='';});
+  const btn=document.getElementById('fb-'+est);
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
+  const f=est==='todos'?buses:buses.filter(b=>estadoBus(b)===est);
+  renderBusesList(f);
+};
+
+function verificarAlertasBuses(){
+  buses.forEach(async b=>{
+    const campos=[
+      {key:'revisionTecnica',tipo:'revision_tecnica'},
+      {key:'permisoCirculacion',tipo:'permiso_circulacion'},
+      {key:'proximaMantencion',tipo:'mantencion'},
+      {key:'seguro',tipo:'seguro'},
+    ];
+    for(const c of campos){
+      if(!b[c.key]) continue;
+      const d=diasHasta(b[c.key]);
+      if(d!==null&&d<=30){
+        const hoy=fechaHoy();
+        const lockKey=S.eId+'/alerta_bus/'+b.id+'/'+c.tipo+'/'+hoy;
+        try{
+          await addDoc(collection(db,'empresas',S.eId,'alertas'),{
+            busId:b.id,busNombre:b.nombre||b.patente||'Bus',
+            tipo:'bus_'+c.tipo,nivel:d<0?'critica':'preventiva',
+            mensaje:`${b.nombre||b.patente} · ${c.tipo.replace(/_/g,' ')} ${d<0?'vencida hace '+Math.abs(d)+' días':'vence en '+d+' días'}`,
+            conductorNombre:b.nombre||'',
+            resuelta:false,fecha:hoy,timestamp:serverTimestamp(),
+          });
+        }catch(e){}
+      }
+    }
+  });
+}
+
+window.openModalBus=function(id=null){
+  document.getElementById('bus-modal-title').textContent=id?'Editar bus':'Agregar bus';
+  ['bus-nombre','bus-patente','bus-marca','bus-modelo','bus-anio','bus-km','bus-cap','bus-rtec','bus-pcirc','bus-mant','bus-pintura','bus-seguro','bus-obs'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  document.getElementById('bus-id').value=id||'';
+  if(id){
+    const b=buses.find(x=>x.id===id);if(!b)return;
+    document.getElementById('bus-nombre').value=b.nombre||'';
+    document.getElementById('bus-patente').value=b.patente||'';
+    document.getElementById('bus-marca').value=b.marca||'';
+    document.getElementById('bus-modelo').value=b.modelo||'';
+    document.getElementById('bus-anio').value=b.año||b.anio||'';
+    document.getElementById('bus-km').value=b.km||'';
+    document.getElementById('bus-cap').value=b.capacidad||'';
+    document.getElementById('bus-obs').value=b.obs||'';
+    ['rtec:revisionTecnica','pcirc:permisoCirculacion','mant:proximaMantencion','pintura:pintura','seguro:seguro'].forEach(pair=>{
+      const[inputSuffix,field]=pair.split(':');
+      if(b[field]){const v=b[field].toDate?b[field].toDate():new Date(b[field]);const el=document.getElementById('bus-'+inputSuffix);if(el)el.value=v.toISOString().split('T')[0];}
+    });
+    actualizarHintsFechas();
+  }
+  document.getElementById('modal-bus').classList.add('open');
+};
+
+function actualizarHintsFechas(){
+  [['bus-rtec','bus-rtec-hint'],['bus-pcirc','bus-pcirc-hint'],['bus-mant','bus-mant-hint']].forEach(([inputId,hintId])=>{
+    const val=document.getElementById(inputId)?.value;
+    const hint=document.getElementById(hintId);
+    if(!hint||!val)return;
+    const d=Math.round((new Date(val)-new Date())/(864e5));
+    hint.style.color=d<0?'var(--red)':d<=30?'var(--amber)':'var(--green)';
+    hint.textContent=d<0?`Vencida hace ${Math.abs(d)} días`:d<=30?`Vence en ${d} días · Alerta activa`:`Vigente · ${d} días`;
+  });
+}
+document.addEventListener('change',e=>{if(['bus-rtec','bus-pcirc','bus-mant'].includes(e.target.id))actualizarHintsFechas();});
+
+window.editarBus=function(id){openModalBus(id);};
+window.closeModalBus=()=>document.getElementById('modal-bus').classList.remove('open');
+
+window.guardarBus=async function(){
+  const nombre=document.getElementById('bus-nombre').value.trim();
+  const patente=document.getElementById('bus-patente').value.trim();
+  if(!nombre){showToast('El nombre del bus es obligatorio','err');return;}
+  const d={
+    nombre,patente,
+    marca:document.getElementById('bus-marca').value.trim(),
+    modelo:document.getElementById('bus-modelo').value.trim(),
+    año:parseInt(document.getElementById('bus-anio').value)||0,
+    km:parseInt(document.getElementById('bus-km').value)||0,
+    capacidad:parseInt(document.getElementById('bus-cap').value)||0,
+    obs:document.getElementById('bus-obs').value.trim(),
+    updatedAt:serverTimestamp(),
+  };
+  ['rtec:revisionTecnica','pcirc:permisoCirculacion','mant:proximaMantencion','pintura:pintura','seguro:seguro'].forEach(pair=>{
+    const[suf,field]=pair.split(':');
+    const v=document.getElementById('bus-'+suf)?.value;
+    if(v) d[field]=new Date(v);
+  });
+  try{
+    const id=document.getElementById('bus-id').value;
+    if(id) await updateDoc(doc(db,'empresas',S.eId,'buses',id),d);
+    else{d.createdAt=serverTimestamp();await addDoc(collection(db,'empresas',S.eId,'buses'),d);}
+    closeModalBus();showToast('Bus guardado ✓','ok');
+    cargarBusesCompleto();
+  }catch(e){showToast('Error: '+e.message,'err');}
+};
+
+window.eliminarBus=async function(id){
+  if(!confirm('¿Eliminar este bus?'))return;
+  await deleteDoc(doc(db,'empresas',S.eId,'buses',id));
+  showToast('Bus eliminado','ok');cargarBusesCompleto();
+};
+
+window.importarBusesExcel=function(){document.getElementById('import-buses-file').click();};
+
+window.descargarPlantillaBuses=function(){
+  const cols=['nombre','patente','marca','modelo','año','km_actuales','capacidad_pasajeros','revision_tecnica','permiso_circulacion','prox_mantencion','seguro_hasta','obs'];
+  const ej=['Bus 03','ABCD·12','Mercedes Benz','O500',2019,45200,46,'2026-08-15','2026-03-31','2026-05-10','2026-12-31','Solo rutas largas'];
+  const ws=XLSX.utils.aoa_to_sheet([cols,ej]);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Buses');
+  XLSX.writeFile(wb,'plantilla_buses.xlsx');
+  showToast('Plantilla descargada ✓','ok');
+};
+
+window.procesarImportBuses=async function(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const wb=XLSX.read(e.target.result,{type:'binary'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(ws,{defval:''});
+    if(!data.length){showToast('Archivo vacío','err');return;}
+    let ok=0,err=0;
+    showToast('Importando '+data.length+' buses…','');
+    for(const row of data){
+      const nombre=(row['nombre']||row['Nombre']||'').toString().trim();
+      if(!nombre){err++;continue;}
+      try{
+        const d={
+          nombre,
+          patente:(row['patente']||row['Patente']||'').toString().trim(),
+          marca:(row['marca']||row['Marca']||'').toString().trim(),
+          modelo:(row['modelo']||row['Modelo']||'').toString().trim(),
+          año:parseInt(row['año']||row['Año']||row['anio']||0)||0,
+          km:parseInt(row['km_actuales']||0)||0,
+          capacidad:parseInt(row['capacidad_pasajeros']||0)||0,
+          obs:(row['obs']||row['Obs']||'').toString().trim(),
+          createdAt:serverTimestamp(),updatedAt:serverTimestamp(),
+        };
+        const campos=[['revision_tecnica','revisionTecnica'],['permiso_circulacion','permisoCirculacion'],['prox_mantencion','proximaMantencion'],['seguro_hasta','seguro']];
+        campos.forEach(([col,field])=>{if(row[col])d[field]=new Date(row[col]);});
+        await addDoc(collection(db,'empresas',S.eId,'buses'),d);
+        ok++;
+      }catch(ex){err++;}
+    }
+    showToast(`${ok} buses importados ✓${err?' · '+err+' con errores':''}`, 'ok');
+    cargarBusesCompleto();
+  };
+  reader.readAsBinaryString(file);
+  input.value='';
+};
 
 window.go=function(name,navEl){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1094,6 +1392,7 @@ window.go=function(name,navEl){
   if(name==='gps'){initGPS();setTimeout(()=>leafletMap.invalidateSize(),100);}
   if(name==='rutas')cargarRutas();
   if(name==='planificacion')cargarViajesHoy();
+  if(name==='buses')cargarBusesCompleto();
 };
 </script>
 </body>
