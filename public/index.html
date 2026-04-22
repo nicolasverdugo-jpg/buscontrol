@@ -3,771 +3,1237 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BusControl — Gestión Operativa</title>
+<title>BusControl — Altas Cumbres</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#0c0f18;--bg2:#131825;--bg3:#1a2133;--bg4:#212840;--border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.13);--text:#e6e9f4;--text2:#8891aa;--text3:#50596e;--accent:#2f72ff;--accent2:#1a5ce8;--green:#0db87a;--green-bg:rgba(13,184,122,0.1);--amber:#f5a623;--amber-bg:rgba(245,166,35,0.1);--red:#ef4444;--red-bg:rgba(239,68,68,0.1);--blue-bg:rgba(47,114,255,0.1);--r:10px;--rl:14px;}
+:root{
+  --bg:#0c0f18;--bg2:#131825;--bg3:#1a2133;--bg4:#212840;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.13);
+  --text:#e6e9f4;--text2:#8891aa;--text3:#50596e;
+  --accent:#2f72ff;--accent2:#1a5ce8;
+  --green:#0db87a;--green-bg:rgba(13,184,122,0.12);
+  --amber:#f5a623;--amber-bg:rgba(245,166,35,0.12);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.12);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.12);
+  --blue-bg:rgba(47,114,255,0.1);
+  --r:10px;--rl:14px;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
+
+/* ── LOGIN ── */
 #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
-.login-card{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:36px 32px;width:380px;max-width:100%;}
-.login-logo{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px;}
+.login-card{background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:38px 34px;width:390px;max-width:100%;}
+.login-logo{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;margin-bottom:2px;}
 .login-logo span{color:var(--accent);}
-.login-sub{font-size:12px;color:var(--text3);margin-bottom:28px;}
-.login-label{font-size:11px;color:var(--text3);margin-bottom:5px;display:block;}
-.login-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s;margin-bottom:12px;}
-.login-input:focus{border-color:var(--accent);}
-.login-btn{width:100%;background:var(--accent);border:none;border-radius:8px;color:#fff;padding:11px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;}
-.login-btn:hover{background:var(--accent2);}
-.login-btn:disabled{opacity:.5;cursor:not-allowed;}
-.login-error{background:var(--red-bg);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--red);margin-top:10px;display:none;}
-#app-shell{display:none;height:100vh;overflow:hidden;}
+.login-empresa{font-size:11px;color:var(--text3);margin-bottom:26px;}
+.lbl{font-size:11px;color:var(--text3);margin-bottom:5px;display:block;}
+.linput{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;color:var(--text);padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s;margin-bottom:11px;}
+.linput:focus{border-color:var(--accent);}
+.lbtn{width:100%;background:var(--accent);border:none;border-radius:9px;color:#fff;padding:11px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;margin-top:4px;}
+.lbtn:hover{background:var(--accent2);}
+.lbtn:disabled{opacity:.5;cursor:not-allowed;}
+.lerr{background:var(--red-bg);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--red);margin-top:10px;display:none;}
+
+/* ── LAYOUT ── */
+#app{display:none;height:100vh;overflow:hidden;}
 .layout{display:flex;height:100vh;}
-.sidebar{width:215px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
-.sb-logo{padding:16px 14px 12px;border-bottom:1px solid var(--border);}
-.logo-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;letter-spacing:-.3px;line-height:1.1;}
-.logo-name span{color:var(--accent);}
-.logo-sub{font-size:10px;color:var(--text3);margin-top:3px;}
-.sb-nav{padding:10px 8px;flex:1;overflow-y:auto;}
-.nav-sec{font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:10px 8px 4px;}
-.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:12px;transition:all .15s;margin-bottom:1px;border:1px solid transparent;}
-.nav-item:hover{background:var(--bg3);color:var(--text);}
-.nav-item.active{background:var(--blue-bg);color:var(--accent);border-color:rgba(47,114,255,.2);}
-.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.6;}
-.nav-item.active .nav-icon{opacity:1;}
-.nav-badge{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2);border-radius:999px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:auto;}
-.sb-footer{padding:10px;border-top:1px solid var(--border);}
+
+/* ── SIDEBAR ── */
+.sb{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.sb-logo{padding:15px 14px 11px;border-bottom:1px solid var(--border);}
+.sb-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;line-height:1.1;}
+.sb-name span{color:var(--accent);}
+.sb-emp{font-size:10px;color:var(--text3);margin-top:2px;}
+.sb-nav{padding:8px 7px;flex:1;overflow-y:auto;}
+.nav-sec{font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:9px 8px 3px;}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:12px;transition:all .15s;margin-bottom:1px;border:1px solid transparent;}
+.ni:hover{background:var(--bg3);color:var(--text);}
+.ni.active{background:var(--blue-bg);color:var(--accent);border-color:rgba(47,114,255,.2);}
+.ni svg{width:14px;height:14px;flex-shrink:0;opacity:.6;}
+.ni.active svg{opacity:1;}
+.nb{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2);border-radius:999px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:auto;}
+.sb-foot{padding:9px;border-top:1px solid var(--border);}
 .user-chip{display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:8px;padding:8px 10px;cursor:pointer;}
 .user-chip:hover{background:var(--bg4);}
-.user-av{width:28px;height:28px;border-radius:50%;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.uav{width:28px;height:28px;border-radius:50%;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+
+/* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.page-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
-.topbar-right{display:flex;align-items:center;gap:9px;}
-.live-pill{display:flex;align-items:center;gap:5px;background:var(--green-bg);border:1px solid rgba(13,184,122,.2);border-radius:999px;padding:3px 10px;font-size:11px;color:var(--green);}
-.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ptitle{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+.tbar-r{display:flex;align-items:center;gap:8px;}
+.live{display:flex;align-items:center;gap:5px;background:var(--green-bg);border:1px solid rgba(13,184,122,.2);border-radius:999px;padding:3px 10px;font-size:11px;color:var(--green);}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.content{flex:1;overflow-y:auto;padding:16px 20px;}
-.page{display:none;animation:fadeIn .18s ease;}
-.page.active{display:block;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
-.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:13px 14px;}
-.metric-label{font-size:10px;color:var(--text3);margin-bottom:4px;}
-.metric-val{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;line-height:1;}
-.metric-sub{font-size:10px;color:var(--text3);margin-top:3px;}
-.v-green{color:var(--green);}.v-red{color:var(--red);}.v-amber{color:var(--amber);}
-.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:14px 18px;}
+.page{display:none;}
+.page.active{display:block;animation:fadeIn .15s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── COMPONENTES BASE ── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:12px 14px;}
+.m-lbl{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.m-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;line-height:1;}
+.m-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+.v-g{color:var(--green);}.v-r{color:var(--red);}.v-a{color:var(--amber);}.v-p{color:var(--purple);}
+
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
 .sec-lbl{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;}
-.tcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:14px;}
+
+.tcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:12px;}
 table{width:100%;border-collapse:collapse;}
-thead th{font-size:10px;color:var(--text3);font-weight:500;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);}
-tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);font-size:12px;vertical-align:middle;}
+thead th{font-size:10px;color:var(--text3);font-weight:500;padding:7px 11px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);}
+tbody td{padding:7px 11px;border-bottom:1px solid var(--border);color:var(--text);font-size:12px;vertical-align:middle;}
 tbody tr:last-child td{border-bottom:none;}
-tbody tr:hover td{background:rgba(255,255,255,.015);}
+tbody tr:hover td{background:rgba(255,255,255,.012);}
+
 .badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;}
 .b-ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(13,184,122,.2);}
-.b-warn{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,166,35,.2);}
-.b-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2);}
-.b-info{background:var(--blue-bg);color:var(--accent);border:1px solid rgba(47,114,255,.2);}
-.b-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
-.b-purple{background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.2);}
-.av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
-.av-blue{background:#1e3560;color:#7aadff;}.av-teal{background:#0b2e22;color:#34d399;}.av-purple{background:#1c1640;color:#a78bfa;}.av-amber{background:#382200;color:#fbbf24;}.av-coral{background:#381510;color:#fb923c;}.av-green{background:#0a2918;color:#4ade80;}
-.dc{display:flex;align-items:center;gap:7px;}
-.person-row{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:7px;overflow:hidden;transition:border-color .15s;}
-.person-row:hover{border-color:var(--border2);}
-.person-hdr{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;}
-.person-info{flex:1;display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 80px;align-items:center;gap:10px;}
-.person-expand{display:none;border-top:1px solid var(--border);background:var(--bg3);}
-.person-row.open .person-expand{display:block;}
-.exp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
-.exp-sec{padding:14px;border-right:1px solid var(--border);}
-.exp-sec:last-child{border-right:none;}
-.exp-title{font-size:10px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:9px;font-weight:600;}
-.exp-field{margin-bottom:7px;}
-.exp-label{font-size:10px;color:var(--text3);margin-bottom:2px;}
-.exp-val{font-size:12px;}
-.exp-actions{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:7px;background:var(--bg2);}
-.planif-form{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:14px;}
-.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.form-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-.form-group{display:flex;flex-direction:column;gap:4px;}
-.form-label{font-size:10px;color:var(--text3);}
-.form-hint{font-size:10px;color:var(--text3);margin-top:2px;}
-.suggest{border-left:3px solid var(--accent);background:var(--blue-bg);border-radius:0 var(--r) var(--r) 0;padding:10px 12px;margin-bottom:10px;font-size:12px;}
-.suggest.ok{border-left-color:var(--green);background:var(--green-bg);}
-.sug-title{font-weight:600;margin-bottom:3px;}
-.sug-desc{color:var(--text2);line-height:1.5;}
-.viaje-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;margin-bottom:8px;transition:border-color .15s;}
-.viaje-card:hover{border-color:var(--border2);}
-.viaje-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.viaje-ruta{font-weight:600;font-size:13px;}
-.viaje-fecha{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
-.viaje-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;}
-.viaje-field-label{font-size:10px;color:var(--text3);margin-bottom:3px;}
-.viaje-field-val{font-size:12px;font-weight:500;}
-.viaje-tel{font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;}
-.viaje-actions{display:flex;gap:7px;padding-top:10px;border-top:1px solid var(--border);}
+.b-w{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,166,35,.2);}
+.b-d{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.b-i{background:var(--blue-bg);color:var(--accent);border:1px solid rgba(47,114,255,.2);}
+.b-g{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.b-p{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(167,139,250,.2);}
+
+.av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.av-b{background:#1e3560;color:#7aadff;}
+.av-t{background:#0b2e22;color:#34d399;}
+.av-p{background:#1c1640;color:#a78bfa;}
+.av-a{background:#382200;color:#fbbf24;}
+.av-c{background:#381510;color:#fb923c;}
+.av-g{background:#0a2918;color:#4ade80;}
+
+/* ── INPUTS ── */
+select,input[type=text],input[type=date],input[type=time],input[type=number],input[type=email],input[type=tel],input[type=password]{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:7px;
+  color:var(--text);padding:7px 9px;font-family:'DM Sans',sans-serif;
+  font-size:12px;outline:none;transition:border-color .15s;width:100%;
+}
+select:focus,input:focus{border-color:var(--accent);}
+.btn{padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;border:1px solid var(--border2);background:var(--bg3);color:var(--text);transition:all .15s;}
+.btn:hover{background:var(--bg4);}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-p:hover{background:var(--accent2);}
+.btn-d{background:var(--red-bg);border-color:rgba(239,68,68,.3);color:var(--red);}
+.btn-sm{padding:4px 8px;font-size:10px;}
+
+/* ── MODAL ── */
+.mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:flex-start;justify-content:center;padding-top:36px;overflow-y:auto;}
+.mov.open{display:flex;animation:fadeIn .15s ease;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:20px;width:580px;max-width:96vw;margin-bottom:36px;}
+.mtitle{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:13px;}
+.mfoot{display:flex;gap:7px;justify-content:flex-end;margin-top:16px;}
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+.flbl{font-size:10px;color:var(--text3);}
+.fhint{font-size:10px;margin-top:2px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:9px;}
+
+/* ── LOADING / TOAST ── */
+.loading{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;}
+.spinner{width:30px;height:30px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:16px;right:16px;z-index:9999;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:9px 13px;font-size:12px;display:none;max-width:280px;line-height:1.4;}
+.toast.show{display:block;animation:fadeIn .2s ease;}
+.toast.ok{border-color:rgba(13,184,122,.3);color:var(--green);}
+.toast.err{border-color:rgba(239,68,68,.3);color:var(--red);}
+
+/* ── PERSON ROW ── */
+.prow{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:6px;overflow:hidden;}
+.prow:hover{border-color:var(--border2);}
+.phdr{display:flex;align-items:center;gap:9px;padding:10px 13px;cursor:pointer;}
+.pinfo{flex:1;display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr 75px;align-items:center;gap:8px;}
+.pexp{display:none;border-top:1px solid var(--border);background:var(--bg3);}
+.prow.open .pexp{display:block;}
+.exp-g{display:grid;grid-template-columns:repeat(3,1fr);}
+.exp-s{padding:12px 13px;border-right:1px solid var(--border);}
+.exp-s:last-child{border-right:none;}
+.exp-t{font-size:10px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+.exp-f{margin-bottom:6px;}
+.exp-l{font-size:10px;color:var(--text3);margin-bottom:2px;}
+.exp-v{font-size:12px;}
+.exp-act{padding:9px 13px;border-top:1px solid var(--border);display:flex;gap:6px;background:var(--bg2);}
+
+/* ── TARJA ── */
+.tarja-wrap{margin-bottom:16px;}
+.tarja-sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.tarja-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.tarja-sec-name{font-weight:600;font-size:13px;}
+.tarja-sec-count{font-size:11px;color:var(--text3);}
+.tarja-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:7px;}
+.tc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .15s;cursor:pointer;}
+.tc:hover{border-color:var(--border2);}
+.tc.especial{border-left:3px solid var(--amber);}
+.tc.sin-cond{opacity:.55;}
+.tc-top{padding:8px 10px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.tc-hora{font-size:15px;font-weight:700;font-family:'DM Mono',monospace;}
+.tc-maq{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--blue-bg);color:#7aadff;border:1px solid rgba(47,114,255,.2);}
+.tc-maq.esp{background:var(--amber-bg);color:var(--amber);border-color:rgba(245,166,35,.2);}
+.tc-body{padding:8px 10px;}
+.tc-row{display:flex;align-items:flex-start;gap:5px;margin-bottom:5px;}
+.tc-row:last-child{margin-bottom:0;}
+.tc-role{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;width:26px;flex-shrink:0;padding-top:1px;}
+.tc-name{font-size:12px;font-weight:500;}
+.tc-tel{font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;}
+.tc-relevo{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);}
+.tc-rlbl{font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px;}
+.tc-foot{background:var(--bg3);padding:5px 10px;display:flex;align-items:center;justify-content:space-between;}
+.tc-llegada{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;}
+
+/* ── CALENDARIO ── */
+.cal-outer{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:auto;margin-bottom:14px;}
+.cal-table{border-collapse:collapse;min-width:100%;}
+.cal-table th{font-size:10px;color:var(--text3);font-weight:500;padding:6px 4px;text-align:center;border-bottom:1px solid var(--border);background:var(--bg3);white-space:nowrap;min-width:28px;}
+.cal-table th.th-name{text-align:left;padding:6px 11px;min-width:140px;position:sticky;left:0;background:var(--bg3);z-index:2;}
+.cal-table th.today-h{color:var(--accent);}
+.cal-table td{padding:3px 2px;border-bottom:1px solid var(--border);vertical-align:middle;border-right:1px solid var(--border);}
+.cal-table td.td-name{padding:5px 11px;border-right:1px solid var(--border);font-size:12px;white-space:nowrap;position:sticky;left:0;background:var(--bg2);z-index:1;}
+.cal-table tr:last-child td{border-bottom:none;}
+.cal-cell{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;margin:auto;cursor:default;}
+.cc-work{background:rgba(47,114,255,.2);color:#7aadff;}
+.cc-asig{background:var(--green);color:#fff;}
+.cc-desc{background:rgba(13,184,122,.15);color:var(--green);}
+.cc-vac{background:rgba(167,139,250,.15);color:var(--purple);}
+.cc-lic{background:rgba(245,166,35,.15);color:var(--amber);}
+.cc-today{outline:2px solid var(--accent);outline-offset:1px;}
+.cc-empty{background:transparent;color:var(--text3);}
+
+/* ── GPS ── */
 .gps-layout{display:flex;height:calc(100vh - 52px);overflow:hidden;}
-.gps-panel{width:270px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
-.gps-panel-hdr{padding:11px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.gps-panel-title{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;}
-.filter-row{padding:7px 12px;border-bottom:1px solid var(--border);display:flex;gap:5px;}
-.filter-btn{padding:3px 9px;border-radius:6px;font-size:10px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all .15s;font-family:'DM Sans',sans-serif;}
-.filter-btn.active{background:var(--blue-bg);color:var(--accent);border-color:rgba(47,114,255,.3);}
-.bus-list-gps{flex:1;overflow-y:auto;}
-.bus-item{padding:11px 13px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-left:3px solid transparent;}
-.bus-item:hover{background:var(--bg3);}
-.bus-item.selected{background:var(--blue-bg);border-left-color:var(--accent);}
-.bus-name-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
-.bus-name-gps{font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;}
-.bus-sdot{width:6px;height:6px;border-radius:50%;}
+.gps-panel{width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.gps-ph{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.gps-pt{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;}
+.filter-row{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;gap:4px;}
+.fb{padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;}
+.fb.active{background:var(--blue-bg);color:var(--accent);border-color:rgba(47,114,255,.3);}
+.bus-list{flex:1;overflow-y:auto;}
+.bi{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;border-left:3px solid transparent;}
+.bi:hover{background:var(--bg3);}
+.bi.sel{background:var(--blue-bg);border-left-color:var(--accent);}
+.bi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+.bi-name{font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;}
 .gps-map-wrap{flex:1;display:flex;flex-direction:column;}
 #map{flex:1;}
-.gps-detail{height:130px;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;overflow:hidden;}
-.gps-detail-main{flex:1;padding:12px 16px;border-right:1px solid var(--border);}
-.gps-stats-row{display:flex;gap:18px;margin-top:8px;}
-.gstat{min-width:70px;}
-.gstat-label{font-size:10px;color:var(--text3);margin-bottom:2px;}
-.gstat-val{font-size:16px;font-weight:700;font-family:'Syne',sans-serif;}
-.gstat-unit{font-size:10px;color:var(--text3);}
-.api-panel{width:200px;flex-shrink:0;padding:12px;}
-.api-block{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 9px;font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);line-height:1.8;}
+.gps-det{height:120px;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;}
+.gps-det-main{flex:1;padding:11px 14px;border-right:1px solid var(--border);}
+.gps-stats{display:flex;gap:16px;margin-top:6px;}
+.gs-val{font-size:15px;font-weight:700;font-family:'Syne',sans-serif;}
+.gs-lbl{font-size:10px;color:var(--text3);}
+.api-pan{width:190px;flex-shrink:0;padding:10px;}
+.api-blk{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);line-height:1.9;}
 .ak{color:var(--accent);}.av2{color:var(--green);}
-.gps-alerta-bar{display:none;background:var(--red-bg);border-top:1px solid rgba(239,68,68,.2);padding:7px 16px;font-size:12px;color:var(--red);align-items:center;gap:8px;}
-.alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
-.alert-item:last-child{border-bottom:none;}
-.adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
-.abody{flex:1;}.atitle{font-weight:500;font-size:12px;margin-bottom:2px;}
-.adesc{font-size:11px;color:var(--text2);line-height:1.5;}
-.atime{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;}
+
+/* ── LEAFLET DARK ── */
 .leaflet-container{background:#0c0f18!important;}
 .leaflet-tile-pane{filter:brightness(.75) saturate(.6) hue-rotate(195deg) invert(1) hue-rotate(195deg) brightness(.45);}
 .leaflet-popup-content-wrapper{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;}
 .leaflet-popup-tip{background:var(--bg2);}
-.leaflet-popup-content{margin:11px 13px;font-size:12px;}
+.leaflet-popup-content{margin:10px 12px;font-size:12px;}
 .leaflet-control-zoom{background:var(--bg2)!important;border:1px solid var(--border2)!important;}
 .leaflet-control-zoom a{background:var(--bg2)!important;color:var(--text)!important;border-bottom:1px solid var(--border)!important;}
 .leaflet-control-attribution{background:rgba(12,15,24,.9)!important;color:var(--text3)!important;font-size:10px!important;}
-.leaflet-control-attribution a{color:var(--text2)!important;}
-select,input[type=text],input[type=date],input[type=time],input[type=number],input[type=email],input[type=tel],input[type=password]{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:7px 9px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color .15s;width:100%;}
-select:focus,input:focus{border-color:var(--accent);}
-.btn{padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;border:1px solid var(--border2);background:var(--bg3);color:var(--text);transition:all .15s;}
-.btn:hover{background:var(--bg4);}
-.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
-.btn-primary:hover{background:var(--accent2);}
-.btn-danger{background:var(--red-bg);border-color:rgba(239,68,68,.3);color:var(--red);}
-.btn-sm{padding:4px 9px;font-size:10px;}
-.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;align-items:flex-start;justify-content:center;padding-top:40px;}
-.modal-ov.open{display:flex;animation:fadeIn .15s ease;}
-.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);padding:22px;width:560px;max-width:96vw;max-height:90vh;overflow-y:auto;}
-.modal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px;}
-.modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:18px;}
-.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
-.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-txt{font-size:12px;color:var(--text3);}
-.toast{position:fixed;bottom:18px;right:18px;z-index:9999;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:12px;display:none;max-width:300px;}
-.toast.show{display:block;animation:fadeIn .2s ease;}
-.toast.ok{border-color:rgba(13,184,122,.3);color:var(--green);}
-.toast.err{border-color:rgba(239,68,68,.3);color:var(--red);}
+
+/* ── ALERTAS ── */
+.alert-item{display:flex;align-items:flex-start;gap:9px;padding:9px 13px;border-bottom:1px solid var(--border);}
+.alert-item:last-child{border-bottom:none;}
+.adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.abody{flex:1;}
+.atitle{font-weight:500;font-size:12px;margin-bottom:1px;}
+.adesc{font-size:11px;color:var(--text2);}
+
+/* ── VIAJE CARD ── */
+.vc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:12px 14px;margin-bottom:7px;}
+.vc:hover{border-color:var(--border2);}
+.vc.especial{border-left:3px solid var(--amber);}
+.vc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.vc-ruta{font-weight:600;font-size:13px;}
+.vc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;}
+.vc-fl{font-size:10px;color:var(--text3);margin-bottom:2px;}
+.vc-fv{font-size:12px;font-weight:500;}
+.vc-tel{font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;}
+.vc-act{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border);}
+
+/* ── JORNADA BAR ── */
+.jornada-bar{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;}
+.jb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.jb-label{font-size:11px;font-weight:600;}
+.jb-horas{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
+.jb-track{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.jb-fill{height:6px;border-radius:3px;transition:width .3s;}
+.jb-ok{background:var(--green);}
+.jb-warn{background:var(--amber);}
+.jb-crit{background:var(--red);}
+.jb-msg{font-size:10px;margin-top:5px;}
+
+/* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+
+/* ── DISPONIBLES HOY ── */
+.disp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:6px;margin-bottom:12px;}
+.dc{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:8px 10px;display:flex;align-items:center;gap:7px;cursor:pointer;transition:border-color .15s;}
+.dc:hover{border-color:var(--border2);}
+.dc.d{border-color:rgba(13,184,122,.2);}
+.dc.a{border-color:rgba(47,114,255,.2);opacity:.65;}
+.dc.r{opacity:.35;}
+.dc-name{font-size:11px;font-weight:500;}
+.dc-est{font-size:10px;margin-top:1px;}
+.dc-est.d{color:var(--green);}
+.dc-est.a{color:var(--accent);}
+.dc-est.r{color:var(--text3);}
 </style>
-</head>
-<body>
+<!-- ── LOADING ── -->
+<div class="loading" id="loading"><div class="spinner"></div><div style="font-size:12px;color:var(--text3)">Conectando…</div></div>
 
-<div class="loading-overlay" id="loading"><div class="spinner"></div><div class="loading-txt">Conectando…</div></div>
-
+<!-- ── LOGIN ── -->
 <div id="login-screen" style="display:none;">
   <div class="login-card">
     <div class="login-logo">Bus<span>Control</span></div>
-    <div class="login-sub">Sistema de gestión operativa · v4.0</div>
-    <label class="login-label">Correo electrónico</label>
-    <input class="login-input" type="email" id="login-email" placeholder="admin@empresa.cl">
-    <label class="login-label">Contraseña</label>
-    <input class="login-input" type="password" id="login-pass" placeholder="••••••••">
-    <button class="login-btn" id="login-btn" onclick="doLogin()">Ingresar</button>
-    <div class="login-error" id="login-error"></div>
+    <div class="login-empresa">Altas Cumbres · Sistema operativo v5</div>
+    <label class="lbl">Correo electrónico</label>
+    <input class="linput" type="email" id="lemail" placeholder="admin@altascumbres.cl" onkeydown="if(event.key==='Enter')doLogin()">
+    <label class="lbl">Contraseña</label>
+    <input class="linput" type="password" id="lpass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="lbtn" id="lbtn" onclick="doLogin()">Ingresar</button>
+    <div class="lerr" id="lerr"></div>
   </div>
 </div>
 
-<div id="app-shell">
+<!-- ── APP ── -->
+<div id="app">
 <div class="layout">
-<aside class="sidebar">
+
+<!-- SIDEBAR -->
+<aside class="sb">
   <div class="sb-logo">
-    <div class="logo-name">Bus<span>Control</span></div>
-    <div class="logo-sub" id="sb-empresa">Cargando…</div>
+    <div class="sb-name">Bus<span>Control</span></div>
+    <div class="sb-emp" id="sb-emp">Cargando…</div>
   </div>
   <nav class="sb-nav">
     <div class="nav-sec">Principal</div>
-    <div class="nav-item active" onclick="go('dashboard',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+    <div class="ni active" onclick="go('dashboard',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
       Dashboard
     </div>
-    <div class="nav-item" onclick="go('alertas',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1.5 13h13L8 1.5z"/><line x1="8" y1="6" x2="8" y2="9"/><circle cx="8" cy="11" r=".5" fill="currentColor"/></svg>
-      Alertas <span class="nav-badge" id="badge-al">0</span>
+    <div class="ni" onclick="go('alertas',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1.5 13h13L8 1.5z"/><line x1="8" y1="6" x2="8" y2="9"/><circle cx="8" cy="11" r=".5" fill="currentColor"/></svg>
+      Alertas <span class="nb" id="badge-al">0</span>
     </div>
     <div class="nav-sec">Planificación</div>
-    <div class="nav-item" onclick="go('planificacion',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="2"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="1" y1="7" x2="15" y2="7"/></svg>
+    <div class="ni" onclick="go('tarja',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="2"/><line x1="5" y1="2" x2="5" y2="14"/><line x1="10" y1="2" x2="10" y2="14"/><line x1="1" y1="7" x2="15" y2="7"/></svg>
+      Tarja del día
+    </div>
+    <div class="ni" onclick="go('planificar',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="2"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="1" y1="7" x2="15" y2="7"/></svg>
       Planificar viaje
     </div>
-    <div class="nav-item" onclick="go('historial',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><polyline points="8,5 8,8 10,10"/></svg>
-      Historial de viajes
+    <div class="ni" onclick="go('historial',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><polyline points="8,5 8,8 10,10"/></svg>
+      Historial
     </div>
-    <div class="nav-item" onclick="go('rutas',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h3l2 8h2l2-8h3"/></svg>
+    <div class="ni" onclick="go('calendario',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="2"/><line x1="1" y1="7" x2="15" y2="7"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><circle cx="5" cy="11" r="1" fill="currentColor"/><circle cx="8" cy="11" r="1" fill="currentColor"/><circle cx="11" cy="11" r="1" fill="currentColor"/></svg>
+      Calendario 9+3
+    </div>
+    <div class="ni" onclick="go('rutas',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h3l2 8h2l2-8h3"/></svg>
       Rutas
     </div>
     <div class="nav-sec">Personal</div>
-    <div class="nav-item" onclick="go('conductores',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
+    <div class="ni" onclick="go('conductores',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
       Conductores
     </div>
-    <div class="nav-item" onclick="go('auxiliares',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.76 2.24-5 5-5"/><circle cx="11" cy="8" r="2"/><path d="M8 14c0-1.66 1.34-3 3-3s3 1.34 3 3"/></svg>
+    <div class="ni" onclick="go('auxiliares',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.76 2.24-5 5-5"/><circle cx="11" cy="8" r="2"/><path d="M8 14c0-1.66 1.34-3 3-3s3 1.34 3 3"/></svg>
       Auxiliares
     </div>
     <div class="nav-sec">Flota</div>
-    <div class="nav-item" onclick="go('gps',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7" r="3"/><path d="M8 1a6 6 0 016 6c0 4-6 9-6 9S2 11 2 7a6 6 0 016-6z"/></svg>
+    <div class="ni" onclick="go('maquinas',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="2"/><circle cx="4" cy="13" r="1.5" fill="currentColor"/><circle cx="12" cy="13" r="1.5" fill="currentColor"/><line x1="1" y1="8" x2="15" y2="8"/></svg>
+      Máquinas
+    </div>
+    <div class="ni" onclick="go('gps',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7" r="3"/><path d="M8 1a6 6 0 016 6c0 4-6 9-6 9S2 11 2 7a6 6 0 016-6z"/></svg>
       GPS — Flota
     </div>
-    <div class="nav-item" onclick="go('buses',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="2"/><circle cx="4" cy="13" r="1.5" fill="currentColor"/><circle cx="12" cy="13" r="1.5" fill="currentColor"/><line x1="1" y1="8" x2="15" y2="8"/><line x1="5" y1="4" x2="5" y2="8"/><line x1="11" y1="4" x2="11" y2="8"/></svg>
-      Buses — Ficha
-    </div>
-    <div class="nav-item" onclick="go('importar',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m-3-3l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
+    <div class="ni" onclick="go('importar',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m-3-3l3 3 3-3"/><rect x="2" y="11" width="12" height="3" rx="1"/></svg>
       Importar / Exportar
     </div>
   </nav>
-  <div class="sb-footer">
+  <div class="sb-foot">
     <div class="user-chip" onclick="doLogout()">
-      <div class="user-av" id="sb-av">?</div>
-      <div><div style="font-size:12px;font-weight:500;" id="sb-nombre">…</div><div style="font-size:10px;color:var(--text3);">Cerrar sesión</div></div>
+      <div class="uav" id="uav">?</div>
+      <div><div style="font-size:12px;font-weight:500;" id="unombre">…</div><div style="font-size:10px;color:var(--text3);">Cerrar sesión</div></div>
     </div>
   </div>
 </aside>
 
+<!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <div class="page-title" id="page-title">Dashboard</div>
-    <div class="topbar-right">
-      <div class="live-pill"><div class="live-dot"></div>En vivo · <span id="clock">--:--</span></div>
-      <button class="btn btn-primary" style="font-size:11px;" onclick="go('planificacion',null)">+ Planificar viaje</button>
+    <div class="ptitle" id="ptitle">Dashboard</div>
+    <div class="tbar-r">
+      <div class="live"><div class="ldot"></div>En vivo · <span id="clock">--:--</span></div>
+      <button class="btn btn-p btn-sm" onclick="go('planificar',null)">+ Planificar viaje</button>
     </div>
   </div>
-  <div class="content">
+  <div class="content" id="content-area">
 
+    <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
       <div class="metrics">
-        <div class="metric"><div class="metric-label">Viajes hoy</div><div class="metric-val v-green" id="m-viajes">0</div><div class="metric-sub">planificados</div></div>
-        <div class="metric"><div class="metric-label">Conductores</div><div class="metric-val" id="m-cond">0</div><div class="metric-sub">registrados</div></div>
-        <div class="metric"><div class="metric-label">Auxiliares</div><div class="metric-val" id="m-aux">0</div><div class="metric-sub">registrados</div></div>
-        <div class="metric"><div class="metric-label">Alertas activas</div><div class="metric-val v-red" id="m-alertas">0</div><div class="metric-sub">hoy</div></div>
+        <div class="metric"><div class="m-lbl">Viajes hoy</div><div class="m-val v-g" id="m-viajes">0</div><div class="m-sub">planificados</div></div>
+        <div class="metric"><div class="m-lbl">Disponibles hoy</div><div class="m-val" id="m-disp">0</div><div class="m-sub" id="m-disp-sub">conductores</div></div>
+        <div class="metric"><div class="m-lbl">En descanso</div><div class="m-val v-p" id="m-desc">0</div><div class="m-sub">ciclo 9+3</div></div>
+        <div class="metric"><div class="m-lbl">Alertas activas</div><div class="m-val v-r" id="m-al">0</div><div class="m-sub">requieren atención</div></div>
       </div>
-      <div class="sec-hdr"><div class="sec-lbl">Viajes de hoy</div><button class="btn btn-sm" onclick="go('planificacion',null)">+ Nuevo →</button></div>
-      <div id="dash-viajes"><div style="color:var(--text3);font-size:12px;padding:12px;">Sin viajes hoy</div></div>
-      <div class="sec-hdr" style="margin-top:8px;"><div class="sec-lbl">Alertas recientes</div></div>
-      <div class="tcard" id="dash-alerts"><div style="padding:14px;color:var(--text3);font-size:12px;">Sin alertas</div></div>
+      <div class="sec-hdr"><div class="sec-lbl">Tarja de hoy</div><button class="btn btn-sm" onclick="go('tarja',null)">Ver completa →</button></div>
+      <div id="dash-tarja"><div style="color:var(--text3);font-size:12px;padding:10px;">Sin viajes hoy. <span style="color:var(--accent);cursor:pointer;" onclick="go('planificar',null)">Planificar primero →</span></div></div>
+      <div class="sec-hdr" style="margin-top:6px;"><div class="sec-lbl">Alertas recientes</div></div>
+      <div class="tcard" id="dash-alerts"><div style="padding:13px;color:var(--text3);font-size:12px;">Sin alertas</div></div>
     </div>
 
-    <div id="page-planificacion" class="page">
-      <div class="suggest ok" style="margin-bottom:14px;">
-        <div class="sug-title">Registrar un viaje</div>
-        <div class="sug-desc">Asigna ruta, conductor, auxiliar y bus. Queda guardado en Firebase con historial completo.</div>
+    <!-- TARJA -->
+    <div id="page-tarja" class="page">
+      <div class="sec-hdr">
+        <div><div class="sec-lbl">Tarja del día</div><div style="font-size:11px;color:var(--text2);margin-top:2px;" id="tarja-fecha-lbl"></div></div>
+        <div style="display:flex;gap:7px;align-items:center;">
+          <input type="date" id="tarja-fecha" style="width:140px;" onchange="cargarTarjaFecha()">
+          <button class="btn btn-sm" onclick="exportarTarja()">Exportar</button>
+        </div>
       </div>
-      <div class="planif-form">
-        <div class="sec-lbl" style="margin-bottom:12px;">Datos del viaje</div>
-        <div class="form-grid-3" style="margin-bottom:10px;">
-          <div class="form-group"><div class="form-label">Fecha</div><input type="date" id="pf-fecha"></div>
-          <div class="form-group"><div class="form-label">Ruta</div><select id="pf-ruta"><option value="">— Seleccionar ruta —</option></select></div>
-          <div class="form-group"><div class="form-label">Bus</div><select id="pf-bus"><option value="">— Seleccionar bus —</option></select></div>
+      <div id="tarja-content"><div style="color:var(--text3);font-size:12px;padding:10px;">Cargando tarja…</div></div>
+    </div>
+
+    <!-- PLANIFICAR -->
+    <div id="page-planificar" class="page">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-bottom:12px;">
+        <div class="sec-lbl" style="margin-bottom:11px;">Datos del viaje</div>
+        <!-- Jornada warning -->
+        <div id="jornada-warn" style="display:none;" class="jornada-bar"></div>
+        <div class="g3" style="margin-bottom:8px;">
+          <div class="fg"><div class="flbl">Fecha</div><input type="date" id="pf-fecha"></div>
+          <div class="fg"><div class="flbl">Ruta</div><select id="pf-ruta"><option value="">— Seleccionar ruta —</option></select></div>
+          <div class="fg"><div class="flbl">Máquina</div><select id="pf-maq"><option value="">— Seleccionar —</option></select></div>
         </div>
-        <div class="form-grid-4" style="margin-bottom:10px;">
-          <div class="form-group"><div class="form-label">Conductor</div><select id="pf-cond"><option value="">— Seleccionar —</option></select></div>
-          <div class="form-group"><div class="form-label">Auxiliar</div><select id="pf-aux"><option value="">— Sin auxiliar —</option></select></div>
-          <div class="form-group"><div class="form-label">Hora salida</div><input type="time" id="pf-sal" value="06:00"></div>
-          <div class="form-group"><div class="form-label">Hora llegada estimada</div><input type="time" id="pf-lleg" value="09:30"></div>
+        <div class="g4" style="margin-bottom:8px;">
+          <div class="fg"><div class="flbl">Conductor</div><select id="pf-cond" onchange="verificarJornada()"><option value="">— Seleccionar —</option></select></div>
+          <div class="fg"><div class="flbl">Auxiliar</div><select id="pf-aux"><option value="">— Sin auxiliar —</option></select></div>
+          <div class="fg"><div class="flbl">Hora salida</div><input type="time" id="pf-sal" value="06:00"></div>
+          <div class="fg"><div class="flbl">Hora llegada est.</div><input type="time" id="pf-lleg" value="09:00"></div>
         </div>
-        <div class="form-grid-2" style="margin-bottom:12px;">
-          <div class="form-group"><div class="form-label">Tipo de día</div>
+        <div class="g3" style="margin-bottom:8px;">
+          <div class="fg"><div class="flbl">Conductor de relevo</div><select id="pf-relevo"><option value="">— Sin relevo —</option></select></div>
+          <div class="fg"><div class="flbl">Tipo de día</div>
             <select id="pf-tipo"><option value="habil">Día hábil</option><option value="sabado">Sábado</option><option value="domingo">Domingo</option><option value="feriado">Feriado</option></select>
           </div>
-          <div class="form-group"><div class="form-label">Observaciones</div><input type="text" id="pf-obs" placeholder="Ej: relevo, parada en Curicó…"></div>
+          <div class="fg" style="align-items:flex-start;justify-content:center;padding-top:14px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;">
+              <input type="checkbox" id="pf-especial" style="width:14px;height:14px;"> Viaje especial
+            </label>
+          </div>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="btn" onclick="limpiarForm()">Limpiar</button>
-          <button class="btn btn-primary" onclick="guardarViaje()">Guardar viaje</button>
+        <div class="fg" style="margin-bottom:11px;"><div class="flbl">Observaciones</div><input type="text" id="pf-obs" placeholder="Ej: parada en Constitución, primera salida…"></div>
+        <div style="display:flex;justify-content:flex-end;gap:7px;">
+          <button class="btn btn-sm" onclick="limpiarPlanif()">Limpiar</button>
+          <button class="btn btn-p btn-sm" onclick="guardarViaje()">Guardar viaje</button>
         </div>
       </div>
-      <div class="sec-lbl" style="margin-bottom:10px;">Viajes de hoy</div>
-      <div id="planif-viajes"><div style="color:var(--text3);font-size:12px;">Sin viajes hoy</div></div>
+      <div class="sec-lbl" style="margin-bottom:8px;">Viajes del día seleccionado</div>
+      <div id="planif-viajes"><div style="color:var(--text3);font-size:12px;">Sin viajes</div></div>
     </div>
 
+    <!-- HISTORIAL -->
     <div id="page-historial" class="page">
       <div class="sec-hdr">
         <div class="sec-lbl">Historial de viajes</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input type="date" id="hist-desde" style="width:140px;">
-          <span style="color:var(--text3);">hasta</span>
-          <input type="date" id="hist-hasta" style="width:140px;">
-          <button class="btn btn-primary btn-sm" onclick="buscarHistorial()">Buscar</button>
-          <button class="btn btn-sm" onclick="exportarHistorial()">Exportar Excel</button>
+        <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;">
+          <input type="date" id="hist-desde" style="width:130px;">
+          <span style="color:var(--text3);font-size:12px;">→</span>
+          <input type="date" id="hist-hasta" style="width:130px;">
+          <button class="btn btn-p btn-sm" onclick="buscarHistorial()">Buscar</button>
+          <button class="btn btn-sm" onclick="exportarHistorial()">Excel</button>
         </div>
       </div>
-      <div id="historial-list"><div style="color:var(--text3);font-size:12px;padding:12px;">Selecciona un rango de fechas y haz clic en Buscar</div></div>
+      <div id="hist-list"><div style="color:var(--text3);font-size:12px;padding:10px;">Selecciona un rango y haz clic en Buscar</div></div>
     </div>
 
+    <!-- CALENDARIO 9+3 -->
+    <div id="page-calendario" class="page">
+      <div class="sec-hdr">
+        <div><div class="sec-lbl">Calendario disponibilidad — ciclo 9+3</div><div style="font-size:11px;color:var(--text2);margin-top:2px;" id="cal-mes-lbl"></div></div>
+        <div style="display:flex;gap:7px;align-items:center;">
+          <select id="cal-filtro-ruta" onchange="renderCalendario()" style="width:160px;"><option value="">Todas las rutas</option></select>
+          <button class="btn btn-sm" onclick="cambiarMesCal(-1)">← Mes anterior</button>
+          <button class="btn btn-sm" onclick="cambiarMesCal(1)">Mes siguiente →</button>
+        </div>
+      </div>
+      <!-- Stats -->
+      <div class="metrics" style="grid-template-columns:repeat(4,1fr);">
+        <div class="metric"><div class="m-lbl">Disponibles hoy</div><div class="m-val v-g" id="cal-disp">—</div></div>
+        <div class="metric"><div class="m-lbl">Asignados hoy</div><div class="m-val v-g" id="cal-asig">—</div></div>
+        <div class="metric"><div class="m-lbl">En descanso A/B/C</div><div class="m-val v-p" id="cal-desc">—</div></div>
+        <div class="metric"><div class="m-lbl">Lic. / Vacaciones</div><div class="m-val v-a" id="cal-lic">—</div></div>
+      </div>
+      <!-- Leyenda -->
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:3px;background:rgba(47,114,255,.3);"></div>Trabajo (número=día ciclo)</div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:3px;background:var(--green);"></div>Asignado a viaje</div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:3px;background:rgba(13,184,122,.2);"></div>Descanso A/B/C</div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:3px;background:rgba(167,139,250,.2);"></div>Vacaciones</div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:12px;height:12px;border-radius:3px;background:rgba(245,166,35,.2);"></div>Licencia</div>
+      </div>
+      <div class="cal-outer"><table class="cal-table" id="cal-table"></table></div>
+      <!-- Disponibles hoy -->
+      <div class="sec-lbl" style="margin-bottom:8px;">Disponibles hoy — clic para preseleccionar</div>
+      <div class="disp-grid" id="disp-grid"></div>
+    </div>
+
+    <!-- RUTAS -->
     <div id="page-rutas" class="page">
       <div class="sec-hdr">
         <div class="sec-lbl">Rutas registradas</div>
-        <button class="btn btn-primary btn-sm" onclick="openModalRuta()">+ Nueva ruta</button>
+        <button class="btn btn-p btn-sm" onclick="openModalRuta()">+ Nueva ruta</button>
       </div>
-      <div class="suggest" style="margin-bottom:14px;"><div class="sug-title">Gestiona las rutas de la empresa</div><div class="sug-desc">Las rutas que agregues aquí aparecen disponibles al planificar un viaje. Puedes editarlas o eliminarlas cuando quieras.</div></div>
       <div id="rutas-list"><div style="color:var(--text3);font-size:12px;">Cargando…</div></div>
     </div>
 
+    <!-- CONDUCTORES -->
     <div id="page-conductores" class="page">
       <div class="sec-hdr">
-        <div class="sec-lbl">Conductores</div>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="search-cond" placeholder="Nombre o RUT…" style="width:180px;" oninput="filtrarLista('conductores',this.value)">
-          <button class="btn btn-primary btn-sm" onclick="openModalPersona('conductor')">+ Agregar</button>
+        <div class="sec-lbl">Conductores <span id="cond-count" style="color:var(--text3);font-weight:400;font-size:10px;"></span></div>
+        <div style="display:flex;gap:7px;">
+          <input type="text" id="sc" placeholder="Nombre o ruta…" style="width:170px;" oninput="filtrarPersonal('c',this.value)">
+          <button class="btn btn-p btn-sm" onclick="openModalPersona('c')">+ Agregar</button>
         </div>
       </div>
-      <div id="cond-list"><div style="color:var(--text3);font-size:12px;padding:12px;">Cargando conductores…</div></div>
+      <div id="cond-list"><div style="color:var(--text3);font-size:12px;padding:10px;">Cargando…</div></div>
     </div>
 
+    <!-- AUXILIARES -->
     <div id="page-auxiliares" class="page">
       <div class="sec-hdr">
-        <div class="sec-lbl">Auxiliares</div>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="search-aux" placeholder="Nombre o RUT…" style="width:180px;" oninput="filtrarLista('auxiliares',this.value)">
-          <button class="btn btn-primary btn-sm" onclick="openModalPersona('auxiliar')">+ Agregar</button>
+        <div class="sec-lbl">Auxiliares <span id="aux-count" style="color:var(--text3);font-weight:400;font-size:10px;"></span></div>
+        <div style="display:flex;gap:7px;">
+          <input type="text" id="sa" placeholder="Nombre o ruta…" style="width:170px;" oninput="filtrarPersonal('a',this.value)">
+          <button class="btn btn-p btn-sm" onclick="openModalPersona('a')">+ Agregar</button>
         </div>
       </div>
-      <div id="aux-list"><div style="color:var(--text3);font-size:12px;padding:12px;">Cargando auxiliares…</div></div>
+      <div id="aux-list"><div style="color:var(--text3);font-size:12px;padding:10px;">Cargando…</div></div>
     </div>
 
-    <div id="page-gps" class="page" style="padding:0;margin:-16px -20px;overflow:hidden;">
+    <!-- MÁQUINAS -->
+    <div id="page-maquinas" class="page">
+      <div class="sec-hdr">
+        <div class="sec-lbl">Máquinas <span id="maq-count" style="color:var(--text3);font-weight:400;font-size:10px;"></span></div>
+        <div style="display:flex;gap:7px;">
+          <input type="text" id="sm" placeholder="Número o patente…" style="width:150px;" oninput="filtrarMaquinas(this.value)">
+          <button class="btn btn-sm" onclick="openModalMaquina()">+ Agregar</button>
+          <button class="btn btn-sm" onclick="importarMaquinasExcel()">Importar Excel</button>
+          <input type="file" id="imp-maq" accept=".xlsx,.xls" style="display:none;" onchange="procesarImportMaq(this)">
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button class="btn btn-sm" onclick="filtrarEstMaq('todas')" id="fem-t" style="border-color:var(--accent);color:var(--accent);">Todas</button>
+        <button class="btn btn-sm" onclick="filtrarEstMaq('disponible')" id="fem-d">Disponibles</button>
+        <button class="btn btn-sm" onclick="filtrarEstMaq('mantencion')" id="fem-m">En mantención</button>
+        <button class="btn btn-sm" onclick="filtrarEstMaq('pana')" id="fem-p">En pana</button>
+      </div>
+      <div id="maq-list"><div style="color:var(--text3);font-size:12px;padding:10px;">Cargando…</div></div>
+    </div>
+
+    <!-- GPS -->
+    <div id="page-gps" class="page" style="padding:0;margin:-14px -18px;overflow:hidden;">
       <div class="gps-layout">
         <div class="gps-panel">
-          <div class="gps-panel-hdr"><div class="gps-panel-title">Flota activa</div><div style="font-size:11px;color:var(--text2);" id="gps-count">— buses</div></div>
+          <div class="gps-ph"><div class="gps-pt">Flota activa</div><div style="font-size:11px;color:var(--text2);" id="gps-count">— buses</div></div>
           <div class="filter-row">
-            <button class="filter-btn active" onclick="setGpsFilter('todos',this)">Todos</button>
-            <button class="filter-btn" onclick="setGpsFilter('en_ruta',this)">En ruta</button>
-            <button class="filter-btn" onclick="setGpsFilter('parado',this)">Parados</button>
+            <button class="fb active" onclick="setGF('todos',this)">Todos</button>
+            <button class="fb" onclick="setGF('en_ruta',this)">En ruta</button>
+            <button class="fb" onclick="setGF('parado',this)">Parados</button>
           </div>
-          <div class="bus-list-gps" id="gps-bus-list"></div>
+          <div class="bus-list" id="gps-list"></div>
         </div>
         <div class="gps-map-wrap">
-          <div class="gps-alerta-bar" id="gps-alerta-bar"><span style="font-weight:600;">⚠ Alerta GPS:</span><span id="gps-alerta-txt"></span></div>
           <div id="map"></div>
-          <div class="gps-detail">
-            <div class="gps-detail-main" id="gps-detail-main"><div style="color:var(--text3);font-size:12px;padding-top:18px;">Selecciona un bus para ver el detalle</div></div>
-            <div class="api-panel"><div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;">JSON API GPS</div><div class="api-block" id="api-preview"><span style="color:var(--text3)">// selecciona un bus</span></div></div>
+          <div class="gps-det">
+            <div class="gps-det-main" id="gps-det"><div style="color:var(--text3);font-size:12px;padding-top:16px;">Selecciona un bus</div></div>
+            <div class="api-pan"><div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">JSON GPS</div><div class="api-blk" id="api-prev"><span style="color:var(--text3)">// sin selección</span></div></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div id="page-buses" class="page">
-      <div class="sec-hdr">
-        <div class="sec-lbl">Flota — fichas de buses</div>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="search-bus" placeholder="Patente o nombre…" style="width:180px;" oninput="filtrarBuses(this.value)">
-          <button class="btn btn-sm" onclick="openModalBus()">+ Agregar bus</button>
-          <button class="btn btn-primary btn-sm" onclick="importarBusesExcel()">Importar Excel</button>
-          <button class="btn btn-sm" onclick="descargarPlantillaBuses()">Plantilla Excel</button>
-        </div>
-      </div>
-      <input type="file" id="import-buses-file" accept=".xlsx,.xls" style="display:none;" onchange="procesarImportBuses(this)">
-      <div style="margin-bottom:12px;display:flex;gap:8px;">
-        <button class="btn btn-sm" onclick="filtrarEstadoBus('todos')" id="fb-todos" style="border-color:var(--accent);color:var(--accent);">Todos</button>
-        <button class="btn btn-sm" onclick="filtrarEstadoBus('vencido')" id="fb-vencido">Vencido</button>
-        <button class="btn btn-sm" onclick="filtrarEstadoBus('proximo')" id="fb-proximo">Por vencer</button>
-        <button class="btn btn-sm" onclick="filtrarEstadoBus('ok')" id="fb-ok">Al día</button>
-      </div>
-      <div id="buses-list"><div style="color:var(--text3);font-size:12px;padding:12px;">Cargando buses…</div></div>
-    </div>
-
+    <!-- ALERTAS -->
     <div id="page-alertas" class="page">
       <div class="sec-lbl" style="margin-bottom:10px;">Alertas activas</div>
-      <div class="tcard" id="all-alerts"><div style="padding:14px;color:var(--text3);">Sin alertas activas</div></div>
+      <div class="tcard" id="all-alerts"><div style="padding:13px;color:var(--text3);">Sin alertas activas</div></div>
     </div>
 
+    <!-- IMPORTAR -->
     <div id="page-importar" class="page">
-      <div class="sec-lbl" style="margin-bottom:14px;">Importar y exportar datos</div>
-      <div class="tcard" style="padding:18px;margin-bottom:14px;">
-        <div style="font-weight:600;font-size:13px;margin-bottom:6px;">Importar conductores</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Columnas: <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;font-size:11px;">nombre · rut · telefono · email · afp · salud · sueldo_base · lic_clase · lic_vencimiento</code></div>
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
-          <input type="file" id="import-cond" accept=".xlsx,.xls" onchange="previewImport(this,'conductor')">
-          <button class="btn btn-primary btn-sm" onclick="importarPersonal('conductor')">Importar conductores</button>
-          <button class="btn btn-sm" onclick="descargarPlantilla('conductor')">Descargar plantilla</button>
+      <div class="sec-lbl" style="margin-bottom:12px;">Importar y exportar datos</div>
+      <div class="tcard" style="padding:16px;margin-bottom:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:5px;">Importar conductores</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:9px;">Columnas: <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">nombre · rut · telefono · email · ruta · lic_clase · lic_vencimiento</code></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+          <input type="file" id="imp-c" accept=".xlsx,.xls" onchange="previewImp(this,'c')">
+          <button class="btn btn-p btn-sm" onclick="importarPersonal('c')">Importar conductores</button>
+          <button class="btn btn-sm" onclick="dlPlantilla('c')">Plantilla</button>
         </div>
-        <div style="font-weight:600;font-size:13px;margin-bottom:6px;">Importar auxiliares</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Columnas: <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;font-size:11px;">nombre · rut · telefono · email</code></div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="import-aux" accept=".xlsx,.xls" onchange="previewImport(this,'auxiliar')">
-          <button class="btn btn-primary btn-sm" onclick="importarPersonal('auxiliar')">Importar auxiliares</button>
-          <button class="btn btn-sm" onclick="descargarPlantilla('auxiliar')">Descargar plantilla</button>
+        <div style="font-weight:600;font-size:13px;margin-bottom:5px;">Importar auxiliares</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+          <input type="file" id="imp-a" accept=".xlsx,.xls" onchange="previewImp(this,'a')">
+          <button class="btn btn-p btn-sm" onclick="importarPersonal('a')">Importar auxiliares</button>
+          <button class="btn btn-sm" onclick="dlPlantilla('a')">Plantilla</button>
         </div>
-        <div id="import-preview" style="display:none;margin-top:14px;">
-          <div class="sec-lbl" style="margin-bottom:8px;">Vista previa</div>
-          <div class="tcard" style="margin-bottom:0;"><table><thead id="import-thead"></thead><tbody id="import-tbody"></tbody></table></div>
-          <div id="import-status" style="margin-top:8px;font-size:12px;"></div>
+        <div id="imp-prev" style="display:none;">
+          <div class="sec-lbl" style="margin-bottom:7px;">Vista previa</div>
+          <div class="tcard" style="margin-bottom:0;"><table><thead id="imp-thead"></thead><tbody id="imp-tbody"></tbody></table></div>
+          <div id="imp-status" style="margin-top:7px;font-size:12px;"></div>
         </div>
       </div>
-      <div class="tcard" style="padding:18px;">
-        <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Exportar datos</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-primary btn-sm" onclick="exportarPersonal('conductor')">Exportar conductores</button>
-          <button class="btn btn-primary btn-sm" onclick="exportarPersonal('auxiliar')">Exportar auxiliares</button>
-          <button class="btn btn-sm" onclick="exportarViajes()">Exportar viajes del mes</button>
+      <div class="tcard" style="padding:16px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:9px;">Exportar datos</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-p btn-sm" onclick="exportarPersonal('c')">Conductores</button>
+          <button class="btn btn-p btn-sm" onclick="exportarPersonal('a')">Auxiliares</button>
+          <button class="btn btn-sm" onclick="exportarViajes()">Viajes del mes</button>
         </div>
       </div>
     </div>
 
+  </div><!-- content -->
+</div><!-- main -->
+</div><!-- layout -->
+</div><!-- app -->
+
+<!-- MODAL RUTA -->
+<div class="mov" id="m-ruta">
+  <div class="modal">
+    <div class="mtitle" id="mruta-title">Nueva ruta</div>
+    <div class="g2" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Nombre *</div><input type="text" id="ruta-nombre" placeholder="Constitución Cama"></div>
+      <div class="fg"><div class="flbl">Duración estimada (horas) *</div><input type="number" id="ruta-dur" placeholder="3" step="0.5"></div>
+    </div>
+    <div class="g2" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Origen</div><input type="text" id="ruta-origen" placeholder="Talca"></div>
+      <div class="fg"><div class="flbl">Destino</div><input type="text" id="ruta-destino" placeholder="Constitución"></div>
+    </div>
+    <div class="fg" style="margin-bottom:8px;"><div class="flbl">Horarios habituales (separados por coma)</div><input type="text" id="ruta-horarios" placeholder="05:10, 06:10, 07:10, 08:10…"></div>
+    <div class="fg" style="margin-bottom:4px;"><div class="flbl">Observaciones</div><input type="text" id="ruta-obs" placeholder="Solo días hábiles, parada en San Javier…"></div>
+    <input type="hidden" id="ruta-id">
+    <div class="mfoot"><button class="btn" onclick="closeM('m-ruta')">Cancelar</button><button class="btn btn-p" onclick="guardarRuta()">Guardar ruta</button></div>
   </div>
-</div>
-</div>
 </div>
 
 <!-- MODAL PERSONA -->
-<div class="modal-ov" id="modal-persona">
+<div class="mov" id="m-persona">
   <div class="modal">
-    <div class="modal-title" id="mp-title">Agregar conductor</div>
-    <div class="form-grid-2" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Nombre completo *</div><input type="text" id="mp-nombre" placeholder="Juan Pérez Soto"></div>
-      <div class="form-group"><div class="form-label">RUT *</div><input type="text" id="mp-rut" placeholder="12.345.678-9"></div>
+    <div class="mtitle" id="mp-title">Agregar conductor</div>
+    <div class="g2" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Nombre completo *</div><input type="text" id="mp-nombre" placeholder="Juan Pérez Soto"></div>
+      <div class="fg"><div class="flbl">RUT</div><input type="text" id="mp-rut" placeholder="12.345.678-9"></div>
     </div>
-    <div class="form-grid-2" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Teléfono celular *</div><input type="tel" id="mp-tel" placeholder="+56 9 1234 5678"></div>
-      <div class="form-group"><div class="form-label">Email</div><input type="email" id="mp-email" placeholder="nombre@email.com"></div>
+    <div class="g2" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Teléfono celular *</div><input type="tel" id="mp-tel" placeholder="+56 9 1234 5678"></div>
+      <div class="fg"><div class="flbl">Email</div><input type="email" id="mp-email" placeholder="nombre@email.com"></div>
     </div>
-    <div id="mp-cond-fields">
-      <div class="form-grid-3" style="margin-bottom:10px;">
-        <div class="form-group"><div class="form-label">Clase licencia</div>
+    <div class="g3" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Ruta habitual</div>
+        <select id="mp-ruta"><option value="">— Seleccionar —</option><option>Constitución</option><option>Constitución Cama</option><option>Linares</option><option>Parral</option><option>Curicó</option><option>Guardia</option></select>
+      </div>
+      <div class="fg"><div class="flbl">Estado hoy</div>
+        <select id="mp-estado"><option value="disponible">Disponible</option><option value="descanso">Descanso A/B/C</option><option value="vacaciones">Vacaciones</option><option value="licencia">Licencia</option><option value="permiso">Permiso</option></select>
+      </div>
+      <div class="fg"><div class="flbl">Posición ciclo (0-11)</div>
+        <input type="number" id="mp-ciclo" placeholder="0" min="0" max="11">
+        <div class="fhint" style="color:var(--text3);font-size:10px;">0=día 1 del ciclo · 9=descanso A</div>
+      </div>
+    </div>
+    <div id="mp-cond-extra">
+      <div class="g2" style="margin-bottom:8px;">
+        <div class="fg"><div class="flbl">Clase licencia</div>
           <select id="mp-lic"><option value="A3">A3 — Buses interprovinciales</option><option value="A2">A2</option><option value="A4">A4</option></select>
         </div>
-        <div class="form-group"><div class="form-label">Vencimiento licencia</div><input type="date" id="mp-licvenc"></div>
-        <div class="form-group"><div class="form-label">Sueldo base</div><input type="number" id="mp-sueldo" placeholder="600000"></div>
-      </div>
-      <div class="form-grid-2" style="margin-bottom:10px;">
-        <div class="form-group"><div class="form-label">AFP</div>
-          <input type="text" id="mp-afp" list="afp-dl" placeholder="Escribe o selecciona…">
-          <datalist id="afp-dl"><option>Habitat</option><option>Capital</option><option>Cuprum</option><option>Modelo</option><option>Planvital</option><option>ProVida</option><option>Uno</option></datalist>
-        </div>
-        <div class="form-group"><div class="form-label">Previsión salud</div>
-          <input type="text" id="mp-salud" list="salud-dl" placeholder="Escribe o selecciona…">
-          <datalist id="salud-dl"><option>Fonasa</option><option>Isapre Banmédica</option><option>Isapre Cruz Blanca</option><option>Isapre Colmena</option><option>Isapre Consalud</option><option>Isapre Vida Tres</option><option>Isapre MasVida</option></datalist>
-        </div>
+        <div class="fg"><div class="flbl">Vencimiento licencia</div><input type="date" id="mp-licvenc"></div>
       </div>
     </div>
-    <div class="form-group" style="margin-bottom:4px;"><div class="form-label">Observaciones</div><input type="text" id="mp-obs" placeholder="Ej: conductor de respaldo…"></div>
+    <div class="fg" style="margin-bottom:4px;"><div class="flbl">Observaciones</div><input type="text" id="mp-obs" placeholder="Conductor de respaldo, habla inglés…"></div>
     <input type="hidden" id="mp-id"><input type="hidden" id="mp-tipo">
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModalPersona()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarPersona()">Guardar en Firebase</button>
-    </div>
+    <div class="mfoot"><button class="btn" onclick="closeM('m-persona')">Cancelar</button><button class="btn btn-p" onclick="guardarPersona()">Guardar</button></div>
   </div>
 </div>
 
-<!-- MODAL RUTA -->
-<div class="modal-ov" id="modal-ruta">
+<!-- MODAL MAQUINA -->
+<div class="mov" id="m-maquina">
   <div class="modal">
-    <div class="modal-title">Gestionar ruta</div>
-    <div class="form-grid-2" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Nombre de la ruta *</div><input type="text" id="ruta-nombre" placeholder="Talca → Santiago"></div>
-      <div class="form-group"><div class="form-label">Duración estimada (horas) *</div><input type="number" id="ruta-dur" placeholder="3.5" step="0.5"></div>
+    <div class="mtitle" id="mmaq-title">Agregar máquina</div>
+    <div class="g3" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Número MAQ *</div><input type="text" id="mq-num" placeholder="710"></div>
+      <div class="fg"><div class="flbl">Patente</div><input type="text" id="mq-pat" placeholder="ABCD·12"></div>
+      <div class="fg"><div class="flbl">Estado</div>
+        <select id="mq-est"><option value="disponible">Disponible</option><option value="mantencion">En mantención</option><option value="pana">En pana en ruta</option></select>
+      </div>
     </div>
-    <div class="form-grid-2" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Origen</div><input type="text" id="ruta-origen" placeholder="Talca"></div>
-      <div class="form-group"><div class="form-label">Destino</div><input type="text" id="ruta-destino" placeholder="Santiago"></div>
+    <div class="g3" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Marca</div><input type="text" id="mq-marca" placeholder="Mercedes Benz"></div>
+      <div class="fg"><div class="flbl">Modelo</div><input type="text" id="mq-modelo" placeholder="O500"></div>
+      <div class="fg"><div class="flbl">Año</div><input type="number" id="mq-anio" placeholder="2018"></div>
     </div>
-    <div class="form-group" style="margin-bottom:10px;"><div class="form-label">Horarios habituales (separados por coma)</div><input type="text" id="ruta-horarios" placeholder="06:00, 10:00, 14:00, 18:00"></div>
-    <div class="form-group" style="margin-bottom:4px;"><div class="form-label">Observaciones</div><input type="text" id="ruta-obs" placeholder="Solo días hábiles, parada en Curicó…"></div>
-    <input type="hidden" id="ruta-id">
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModalRuta()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarRuta()">Guardar ruta</button>
+    <div class="g2" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Conductor habitual</div><input type="text" id="mq-cond" placeholder="Nombre del conductor"></div>
+      <div class="fg"><div class="flbl">Asistente habitual</div><input type="text" id="mq-asist" placeholder="Nombre del asistente"></div>
     </div>
-  </div>
-</div>
-
-<!-- MODAL BUS -->
-<div class="modal-ov" id="modal-bus">
-  <div class="modal">
-    <div class="modal-title" id="bus-modal-title">Agregar bus</div>
-    <div class="form-grid-2" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Nombre / número *</div><input type="text" id="bus-nombre" placeholder="Bus 03"></div>
-      <div class="form-group"><div class="form-label">Patente *</div><input type="text" id="bus-patente" placeholder="ABCD·12"></div>
+    <div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;margin-top:4px;">Vencimientos — alerta 30 días antes</div>
+    <div class="g3" style="margin-bottom:8px;">
+      <div class="fg"><div class="flbl">Revisión técnica</div><input type="date" id="mq-rtec"></div>
+      <div class="fg"><div class="flbl">Permiso circulación</div><input type="date" id="mq-pcirc"></div>
+      <div class="fg"><div class="flbl">Próxima mantención</div><input type="date" id="mq-mant"></div>
     </div>
-    <div class="form-grid-3" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Marca</div><input type="text" id="bus-marca" placeholder="Mercedes Benz"></div>
-      <div class="form-group"><div class="form-label">Modelo</div><input type="text" id="bus-modelo" placeholder="O500"></div>
-      <div class="form-group"><div class="form-label">Año</div><input type="number" id="bus-anio" placeholder="2018"></div>
-    </div>
-    <div class="form-grid-2" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Km actuales</div><input type="number" id="bus-km" placeholder="85000"></div>
-      <div class="form-group"><div class="form-label">Capacidad pasajeros</div><input type="number" id="bus-cap" placeholder="46"></div>
-    </div>
-    <div style="font-size:10px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;margin-top:4px;">Vencimientos — el sistema genera alertas 30 días antes</div>
-    <div class="form-grid-3" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Revisión técnica</div><input type="date" id="bus-rtec"><div class="form-hint" id="bus-rtec-hint"></div></div>
-      <div class="form-group"><div class="form-label">Permiso de circulación</div><input type="date" id="bus-pcirc"><div class="form-hint" id="bus-pcirc-hint"></div></div>
-      <div class="form-group"><div class="form-label">Próxima mantención</div><input type="date" id="bus-mant"><div class="form-hint" id="bus-mant-hint"></div></div>
-    </div>
-    <div class="form-grid-2" style="margin-bottom:10px;">
-      <div class="form-group"><div class="form-label">Última pintura</div><input type="date" id="bus-pintura"></div>
-      <div class="form-group"><div class="form-label">Seguro vigente hasta</div><input type="date" id="bus-seguro"></div>
-    </div>
-    <div class="form-group" style="margin-bottom:4px;"><div class="form-label">Observaciones</div><input type="text" id="bus-obs" placeholder="Ej: solo rutas cortas, asientos reclinables, AC…"></div>
-    <input type="hidden" id="bus-id">
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModalBus()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarBus()">Guardar bus</button>
-    </div>
+    <div class="fg" style="margin-bottom:4px;"><div class="flbl">Observaciones</div><input type="text" id="mq-obs" placeholder="Solo rutas largas, AC…"></div>
+    <input type="hidden" id="mq-id">
+    <div class="mfoot"><button class="btn" onclick="closeM('m-maquina')">Cancelar</button><button class="btn btn-p" onclick="guardarMaquina()">Guardar</button></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
-
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import{getFirestore,enableIndexedDbPersistence,collection,doc,getDoc,getDocs,addDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp,limit}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getFirestore,enableIndexedDbPersistence,collection,doc,getDoc,getDocs,addDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp,limit,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const FC={apiKey:"AIzaSyD83G94vXnEz4hqu86JQFMvWZ-FrIDOQGY",authDomain:"buscontrol-da400.firebaseapp.com",projectId:"buscontrol-da400",storageBucket:"buscontrol-da400.firebasestorage.app",messagingSenderId:"771012964151",appId:"1:771012964151:web:e3f807a5088e5cb07534b2"};
-const app=initializeApp(FC);
-const auth=getAuth(app);
-const db=getFirestore(app);
+const app=initializeApp(FC),auth=getAuth(app),db=getFirestore(app);
 enableIndexedDbPersistence(db).catch(()=>{});
 
-let S={},conductores=[],auxiliares=[],rutas=[],buses=[],alertas=[],unsubs=[],mapInited=false,leafletMap,gpsFilter='todos',selBus=null,gpsInt=null,importTemp=null;
+// ── ESTADO GLOBAL ──────────────────────────────────────────
+let S={},conductores=[],auxiliares=[],rutas=[],maquinas=[],alertas=[],viajesHoy=[],unsubs=[],impTemp=null,calMes=new Date(),mapInited=false,leafletMap,gpsFilter='todos',selBus=null,gpsInt=null,filtroEstMaqActivo='todas';
 
-// HELPERS
-function tok(t){if(!t)return[];const s=t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').trim();const w=s.split(/\s+/).filter(Boolean);const r=new Set([s]);w.forEach(x=>{r.add(x);for(let i=2;i<x.length;i++)r.add(x.slice(0,i));});return[...r];}
-function tokRut(r){if(!r)return[];const s=r.replace(/[.\-]/g,'');const t=new Set([s]);for(let i=2;i<=s.length;i++)t.add(s.slice(0,i));return[...t];}
-function fechaHoy(){return new Date().toISOString().split('T')[0];}
-function avC(n){const c=['av-blue','av-teal','av-purple','av-amber','av-coral','av-green'];return c[Math.abs((n||'').charCodeAt(0)||0)%6];}
-function ini(n){return(n||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();}
-function licSt(v){if(!v)return{b:'b-gray',t:'Sin fecha',c:'var(--text3)'};const d=v.toDate?v.toDate():new Date(v);const diff=Math.round((d-new Date())/(864e5));if(diff<0)return{b:'b-danger',t:`Vencida hace ${Math.abs(diff)} días`,c:'var(--red)'};if(diff<30)return{b:'b-warn',t:`Vence en ${diff} días`,c:'var(--amber)'};return{b:'b-ok',t:'Vigente',c:'var(--green)'};}
-function showToast(m,t=''){const el=document.getElementById('toast');el.textContent=m;el.className='toast show '+(t||'');setTimeout(()=>el.classList.remove('show'),3500);}
+// ── HELPERS ────────────────────────────────────────────────
+const fechaHoy=()=>new Date().toISOString().split('T')[0];
+const fmtFecha=d=>new Date(d+'T12:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});
+const avColors=['av-b','av-t','av-p','av-a','av-c','av-g'];
+const avC=n=>avColors[Math.abs((n||'').charCodeAt(0)||0)%6];
+const ini=n=>(n||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+
+function showToast(msg,tipo=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+(tipo||'');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3500);
+}
 window.showToast=showToast;
-function updateClock(){const n=new Date();document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');}
 
-// AUTH
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+}
+
+// ── CICLO 9+3 ──────────────────────────────────────────────
+// Fecha de referencia: 1 de abril 2026 (día 0 del sistema)
+const REF_DATE=new Date('2026-04-01T00:00:00');
+const CICLO=['1','2','3','4','5','6','7','8','9','A','B','C'];
+
+function getCicloVal(offset,fecha){
+  const d=typeof fecha==='string'?new Date(fecha+'T12:00:00'):fecha;
+  const diffDays=Math.round((d-REF_DATE)/(864e5));
+  const pos=((offset+diffDays)%12+12)%12;
+  return CICLO[pos];
+}
+
+function isDisponible(offset,fecha,estadoEspecial=''){
+  if(estadoEspecial&&estadoEspecial!=='disponible') return false;
+  const v=getCicloVal(offset,fecha);
+  return !['A','B','C'].includes(v);
+}
+
+function getEstadoConductorHoy(cond){
+  if(cond.estadoHoy&&cond.estadoHoy!=='disponible') return cond.estadoHoy;
+  const v=getCicloVal(cond.cicloOffset||0,fechaHoy());
+  if(['A','B','C'].includes(v)) return 'descanso';
+  return 'disponible';
+}
+
+// ── AUTH ───────────────────────────────────────────────────
 window.doLogin=async function(){
-  const e=document.getElementById('login-email').value.trim(),p=document.getElementById('login-pass').value;
-  const btn=document.getElementById('login-btn'),err=document.getElementById('login-error');
+  const email=document.getElementById('lemail').value.trim();
+  const pass=document.getElementById('lpass').value;
+  const btn=document.getElementById('lbtn'),err=document.getElementById('lerr');
   err.style.display='none';btn.disabled=true;btn.textContent='Ingresando…';
-  try{await signInWithEmailAndPassword(auth,e,p);}
-  catch(ex){err.style.display='block';err.textContent=ex.code==='auth/invalid-credential'?'Correo o contraseña incorrectos':ex.message;btn.disabled=false;btn.textContent='Ingresar';}
+  try{await signInWithEmailAndPassword(auth,email,pass);}
+  catch(e){err.style.display='block';err.textContent=e.code==='auth/invalid-credential'?'Correo o contraseña incorrectos':e.message;btn.disabled=false;btn.textContent='Ingresar';}
 };
-window.doLogout=async function(){unsubs.forEach(u=>u());unsubs=[];if(gpsInt)clearInterval(gpsInt);conductores=[];auxiliares=[];rutas=[];buses=[];alertas=[];S={};await signOut(auth);};
+
+window.doLogout=async function(){
+  unsubs.forEach(u=>u());unsubs=[];
+  if(gpsInt)clearInterval(gpsInt);
+  [conductores,auxiliares,rutas,maquinas,alertas,viajesHoy]=[],[],[],[],[],[];
+  S={};await signOut(auth);
+};
 
 onAuthStateChanged(auth,async user=>{
-  if(!user){document.getElementById('loading').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('app-shell').style.display='none';return;}
+  if(!user){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app').style.display='none';
+    return;
+  }
   try{
     const ps=await getDoc(doc(db,'usuarios',user.uid));
-    if(!ps.exists()){showToast('Usuario sin perfil en Firestore','err');await signOut(auth);return;}
-    const p=ps.data();S={user,eId:p.empresaId,rol:p.rol};
+    if(!ps.exists()){showToast('Sin perfil en Firestore','err');await signOut(auth);return;}
+    const p=ps.data();
+    S={user,eId:p.empresaId,rol:p.rol};
     const es=await getDoc(doc(db,'empresas',p.empresaId));
     S.empresa=es.exists()?es.data():{nombre:p.empresaId};
-    document.getElementById('sb-empresa').textContent=S.empresa.nombre||p.empresaId;
-    document.getElementById('sb-nombre').textContent=p.nombre||user.email;
-    document.getElementById('sb-av').textContent=(p.nombre||user.email).slice(0,2).toUpperCase();
+    document.getElementById('sb-emp').textContent=S.empresa.nombre||p.empresaId;
+    document.getElementById('unombre').textContent=p.nombre||user.email;
+    document.getElementById('uav').textContent=(p.nombre||user.email).slice(0,2).toUpperCase();
     document.getElementById('loading').style.display='none';
     document.getElementById('login-screen').style.display='none';
-    document.getElementById('app-shell').style.display='block';
-    document.getElementById('pf-fecha').value=fechaHoy();
-    const hoy=new Date();
-    document.getElementById('hist-desde').value=new Date(hoy.getFullYear(),hoy.getMonth(),1).toISOString().split('T')[0];
-    document.getElementById('hist-hasta').value=fechaHoy();
+    document.getElementById('app').style.display='block';
+    // Init fechas
+    const hoy=fechaHoy();
+    document.getElementById('pf-fecha').value=hoy;
+    document.getElementById('tarja-fecha').value=hoy;
+    const ini1=new Date();ini1.setDate(1);
+    document.getElementById('hist-desde').value=ini1.toISOString().split('T')[0];
+    document.getElementById('hist-hasta').value=hoy;
     iniciarApp();
-  }catch(ex){showToast('Error: '+ex.message,'err');document.getElementById('loading').style.display='none';document.getElementById('login-screen').style.display='flex';}
+  }catch(e){showToast('Error: '+e.message,'err');document.getElementById('loading').style.display='none';document.getElementById('login-screen').style.display='flex';}
 });
 
+// ── INIT APP ───────────────────────────────────────────────
 function iniciarApp(){
   const eId=S.eId;
-  // Conductores
+  // Conductores listener en tiempo real
   unsubs.push(onSnapshot(query(collection(db,'empresas',eId,'conductores'),orderBy('nombre','asc')),sn=>{
     conductores=sn.docs.map(d=>({id:d.id,...d.data()}));
-    renderPersonal('conductores');actualizarSels();
-    document.getElementById('m-cond').textContent=conductores.length;
+    renderPersonalList('c');actualizarSels();
+    const disp=conductores.filter(c=>getEstadoConductorHoy(c)==='disponible').length;
+    const desc=conductores.filter(c=>getEstadoConductorHoy(c)==='descanso').length;
+    document.getElementById('m-disp').textContent=disp;
+    document.getElementById('m-desc').textContent=desc;
+    document.getElementById('cond-count').textContent='— '+conductores.length+' registrados';
+    renderCalendario();renderDisponiblesHoy();
   }));
-  // Auxiliares
+  // Auxiliares listener
   unsubs.push(onSnapshot(query(collection(db,'empresas',eId,'auxiliares'),orderBy('nombre','asc')),sn=>{
     auxiliares=sn.docs.map(d=>({id:d.id,...d.data()}));
-    renderPersonal('auxiliares');actualizarSels();
-    document.getElementById('m-aux').textContent=auxiliares.length;
+    renderPersonalList('a');actualizarSels();
+    document.getElementById('aux-count').textContent='— '+auxiliares.length+' registrados';
   }));
-  // Alertas
-  unsubs.push(onSnapshot(query(collection(db,'empresas',eId,'alertas'),where('resuelta','==',false),orderBy('timestamp','desc'),limit(20)),sn=>{
+  // Alertas listener
+  unsubs.push(onSnapshot(query(collection(db,'empresas',eId,'alertas'),where('resuelta','==',false),orderBy('timestamp','desc'),limit(30)),sn=>{
     alertas=sn.docs.map(d=>({id:d.id,...d.data()}));
-    document.getElementById('m-alertas').textContent=alertas.length;
+    document.getElementById('m-al').textContent=alertas.length;
     document.getElementById('badge-al').textContent=alertas.length;
     renderAlertas();
   }));
-  cargarRutas();cargarBusesCompleto();cargarViajesHoy();inicializarRutasDefault();
+  // Maquinas listener
+  unsubs.push(onSnapshot(query(collection(db,'empresas',eId,'maquinas'),orderBy('numero','asc')),sn=>{
+    maquinas=sn.docs.map(d=>({id:d.id,...d.data()}));
+    actualizarSels();renderMaquinasList(maquinas);
+    document.getElementById('maq-count').textContent='— '+maquinas.length+' registradas';
+  }));
+  cargarRutas();cargarViajesHoy();
+  inicializarDatosDefault();
   updateClock();setInterval(updateClock,30000);
 }
 
-// RUTAS
+// ── DATOS DEFAULT (rutas + conductores reales) ─────────────
+const RUTAS_DEFAULT=[
+  {nombre:'Constitución Cama',duracionH:3,origen:'Talca',destino:'Constitución',horarios:'05:10, 06:10, 07:10, 08:10, 10:10, 11:10',obs:'Bus cama · servicio nocturno'},
+  {nombre:'Constitución',duracionH:3,origen:'Talca',destino:'Constitución',horarios:'09:10, 12:00, 15:00',obs:''},
+  {nombre:'Linares',duracionH:1.5,origen:'Talca',destino:'Linares',horarios:'07:30, 08:30, 10:40, 12:00',obs:''},
+  {nombre:'Parral',duracionH:3,origen:'Talca',destino:'Parral',horarios:'05:40, 07:50, 08:50, 09:40, 11:50, 12:50',obs:''},
+  {nombre:'Curicó',duracionH:1.5,origen:'Talca',destino:'Curicó',horarios:'07:00, 09:00, 12:00, 15:00',obs:''},
+];
+
+const CONDUCTORES_DEFAULT=[
+  {nombre:'Juan Aravena',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Celin Ibarra',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Cesar Garrido',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Hector Pezoa',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Eduardo Gonzalez',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Jose Rojas',ruta:'Guardia',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Jesus Espinoza',ruta:'Linares',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Marcelino Guzman',ruta:'Linares',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Juan Martinez',ruta:'Linares',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Julio Rojas',ruta:'Parral',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Sebastian Yañez',ruta:'Parral',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Higinio Retamal',ruta:'Parral',cicloOffset:11,estadoHoy:'disponible'},
+  {nombre:'Edmundo Valenzuela',ruta:'Constitución',cicloOffset:0,estadoHoy:'disponible'},
+  {nombre:'Wenceslao Muñoz',ruta:'Constitución',cicloOffset:5,estadoHoy:'disponible'},
+  {nombre:'Nelson Vasquez',ruta:'Constitución',cicloOffset:3,estadoHoy:'disponible'},
+  {nombre:'Raul Castro',ruta:'Constitución',cicloOffset:0,estadoHoy:'disponible'},
+  {nombre:'Pablo Ahumada',ruta:'Parral',cicloOffset:2,estadoHoy:'disponible'},
+  {nombre:'Manuel Leiva',ruta:'Linares',cicloOffset:0,estadoHoy:'disponible'},
+  {nombre:'J. Manuel Guerra',ruta:'Linares',cicloOffset:0,estadoHoy:'disponible'},
+  {nombre:'Miguel Galaz',ruta:'Constitución',cicloOffset:1,estadoHoy:'disponible'},
+];
+
+const AUXILIARES_DEFAULT=[
+  {nombre:'Rodrigo Soto',ruta:'Constitución',cicloOffset:0},
+  {nombre:'Esteban Castillo',ruta:'Constitución',cicloOffset:3},
+  {nombre:'Bastian Marquez',ruta:'Constitución',cicloOffset:5},
+  {nombre:'Juan Muñoz',ruta:'Constitución',cicloOffset:0},
+  {nombre:'Jonatan Villalobos',ruta:'Parral',cicloOffset:2},
+  {nombre:'J. Ignacio Rodriguez',ruta:'Linares',cicloOffset:0},
+  {nombre:'Jose Muñoz',ruta:'Linares',cicloOffset:0},
+  {nombre:'Maximiliano Mendoza',ruta:'Constitución',cicloOffset:1},
+  {nombre:'Isaias Sandoval',ruta:'Linares',cicloOffset:0},
+  {nombre:'Ricardo Villarroel',ruta:'Constitución',cicloOffset:5},
+];
+
+const MAQUINAS_DEFAULT=[
+  {numero:710,conductorHabitual:'Jose Rojas',asistenteHabitual:'Eduardo Muñoz',estado:'disponible'},
+  {numero:720,conductorHabitual:'Sergio Castillo',asistenteHabitual:'Cristian Molina',estado:'disponible'},
+  {numero:730,conductorHabitual:'Pablo Ahumada',asistenteHabitual:'Jhony Gonzalez',estado:'disponible'},
+  {numero:770,conductorHabitual:'',asistenteHabitual:'',estado:'disponible'},
+  {numero:780,conductorHabitual:'Julio Rojas',asistenteHabitual:'Raul Maraboli',estado:'disponible'},
+  {numero:820,conductorHabitual:'J. Manuel Guerra',asistenteHabitual:'Gabriel Soto',estado:'disponible'},
+  {numero:850,conductorHabitual:'Fabian Castro',asistenteHabitual:'Victor Eyzaguirre',estado:'disponible'},
+  {numero:860,conductorHabitual:'Juan Martinez',asistenteHabitual:'Francisco Martinez',estado:'disponible'},
+  {numero:930,conductorHabitual:'Jose Inostroza',asistenteHabitual:'Bastian Bustos',estado:'disponible'},
+  {numero:1100,conductorHabitual:'Marcelino Guzman',asistenteHabitual:'Carlos Yañez',estado:'disponible'},
+  {numero:1110,conductorHabitual:'Higinio Retamal',asistenteHabitual:'Matias Sepulveda',estado:'disponible'},
+  {numero:1130,conductorHabitual:'Celin Ibarra',asistenteHabitual:'Ricardo Villarroel',estado:'disponible'},
+  {numero:1140,conductorHabitual:'Raul Castro',asistenteHabitual:'Juan Muñoz',estado:'disponible'},
+  {numero:1150,conductorHabitual:'Juan Ramirez',asistenteHabitual:'Jose Jara',estado:'disponible'},
+  {numero:1180,conductorHabitual:'Juan Aravena',asistenteHabitual:'Tomas Farias',estado:'disponible'},
+  {numero:1230,conductorHabitual:'Felipe Fuentes',asistenteHabitual:'Isaias Sandoval',estado:'disponible'},
+  {numero:1260,conductorHabitual:'Manuel Leiva',asistenteHabitual:'J. Ignacio Rodriguez',estado:'disponible'},
+  {numero:1300,conductorHabitual:'Edmundo Valenzuela',asistenteHabitual:'Rodrigo Soto',estado:'disponible'},
+  {numero:1330,conductorHabitual:'Wenceslao Muñoz',asistenteHabitual:'Bastian Marquez',estado:'disponible'},
+  {numero:1340,conductorHabitual:'Erik Zenteno',asistenteHabitual:'Manuel Muñoz',estado:'disponible'},
+  {numero:1350,conductorHabitual:'Omar Figueroa',asistenteHabitual:'Patricio Sandoval',estado:'disponible'},
+  {numero:1380,conductorHabitual:'Gustavo Muñoz',asistenteHabitual:'Pablo Villalobos',estado:'disponible'},
+  {numero:1400,conductorHabitual:'Manuel Araya',asistenteHabitual:'Brandon Mendez',estado:'disponible'},
+  {numero:1410,conductorHabitual:'German Figueroa',asistenteHabitual:'Benjamin Torres',estado:'disponible'},
+  {numero:1510,conductorHabitual:'Francisco Huerta',asistenteHabitual:'Matias Morales',estado:'disponible'},
+  {numero:1520,conductorHabitual:'Juan Farias',asistenteHabitual:'Sebastian Gonzalez',estado:'disponible'},
+  {numero:1530,conductorHabitual:'Alvaro Diaz',asistenteHabitual:'Francisco Gutierrez',estado:'disponible'},
+  {numero:1540,conductorHabitual:'Jorge Santelices',asistenteHabitual:'Cristobal Orellana',estado:'disponible'},
+  {numero:1600,conductorHabitual:'Jose Valdes',asistenteHabitual:'Javier Rioseco',estado:'disponible'},
+  {numero:1610,conductorHabitual:'Nelson Vasquez',asistenteHabitual:'Esteban Castillo',estado:'disponible'},
+];
+
+async function inicializarDatosDefault(){
+  // Rutas
+  const rsn=await getDocs(collection(db,'empresas',S.eId,'rutas'));
+  if(rsn.empty){
+    for(const r of RUTAS_DEFAULT){
+      await addDoc(collection(db,'empresas',S.eId,'rutas'),{...r,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    }
+    showToast('Rutas de Altas Cumbres cargadas ✓','ok');
+  }
+  // Conductores
+  const csn=await getDocs(collection(db,'empresas',S.eId,'conductores'));
+  if(csn.empty){
+    for(const c of CONDUCTORES_DEFAULT){
+      await addDoc(collection(db,'empresas',S.eId,'conductores'),{...c,telefono:'',email:'',rut:'',createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    }
+    showToast('Conductores de ejemplo cargados ✓','ok');
+  }
+  // Auxiliares
+  const asn=await getDocs(collection(db,'empresas',S.eId,'auxiliares'));
+  if(asn.empty){
+    for(const a of AUXILIARES_DEFAULT){
+      await addDoc(collection(db,'empresas',S.eId,'auxiliares'),{...a,telefono:'',email:'',rut:'',createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    }
+  }
+  // Maquinas
+  const msn=await getDocs(collection(db,'empresas',S.eId,'maquinas'));
+  if(msn.empty){
+    for(const m of MAQUINAS_DEFAULT){
+      await addDoc(collection(db,'empresas',S.eId,'maquinas'),{...m,nombre:'MAQ '+m.numero,patente:'',marca:'',modelo:'',año:0,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    }
+    showToast('30 máquinas de ejemplo cargadas ✓','ok');
+  }
+}
+
+// ── RUTAS ──────────────────────────────────────────────────
 async function cargarRutas(){
   const sn=await getDocs(query(collection(db,'empresas',S.eId,'rutas'),orderBy('nombre','asc')));
-  rutas=sn.docs.map(d=>({id:d.id,...d.data()}));renderRutas();actualizarSels();
+  rutas=sn.docs.map(d=>({id:d.id,...d.data()}));
+  renderRutasList();actualizarSels();
+  // Poblar filtro calendario
+  const sel=document.getElementById('cal-filtro-ruta');
+  sel.innerHTML='<option value="">Todas las rutas</option>'+[...new Set(conductores.map(c=>c.ruta).filter(Boolean))].map(r=>`<option>${r}</option>`).join('');
 }
-function renderRutas(){
+
+function renderRutasList(){
   const el=document.getElementById('rutas-list');if(!el)return;
-  if(!rutas.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;">Sin rutas. Agrega la primera con el botón de arriba.</div>';return;}
+  if(!rutas.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Sin rutas. Agrega la primera.</div>';return;}
   el.innerHTML=`<div class="tcard"><table>
     <thead><tr><th>Ruta</th><th>Duración</th><th>Origen → Destino</th><th>Horarios</th><th>Obs.</th><th></th></tr></thead>
     <tbody>${rutas.map(r=>`<tr>
       <td style="font-weight:500;">${r.nombre||'—'}</td>
-      <td>${r.duracionH||'—'} h</td>
+      <td style="font-family:'DM Mono',monospace;">${r.duracionH||'—'}h</td>
       <td style="color:var(--text2);">${r.origen||''}${r.destino?' → '+r.destino:''}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">${r.horarios||'—'}</td>
+      <td style="font-size:11px;color:var(--text3);">${r.horarios||'—'}</td>
       <td style="font-size:11px;color:var(--text3);">${r.obs||''}</td>
       <td><div style="display:flex;gap:5px;">
         <button class="btn btn-sm" onclick="editarRuta('${r.id}')">Editar</button>
-        <button class="btn btn-sm btn-danger" onclick="eliminarRuta('${r.id}')">Eliminar</button>
+        <button class="btn btn-sm btn-d" onclick="eliminarRuta('${r.id}')">Eliminar</button>
       </div></td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
+    </tr>`).join('')}</tbody></table></div>`;
 }
-window.openModalRuta=function(){
+window.openModalRuta=function(id=null){
   ['ruta-nombre','ruta-dur','ruta-origen','ruta-destino','ruta-horarios','ruta-obs'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('ruta-id').value='';
-  document.getElementById('modal-ruta').classList.add('open');
+  document.getElementById('mruta-title').textContent=id?'Editar ruta':'Nueva ruta';
+  if(id){const r=rutas.find(x=>x.id===id);if(r){document.getElementById('ruta-nombre').value=r.nombre||'';document.getElementById('ruta-dur').value=r.duracionH||'';document.getElementById('ruta-origen').value=r.origen||'';document.getElementById('ruta-destino').value=r.destino||'';document.getElementById('ruta-horarios').value=r.horarios||'';document.getElementById('ruta-obs').value=r.obs||'';document.getElementById('ruta-id').value=id;}}
+  openM('m-ruta');
 };
-window.closeModalRuta=()=>document.getElementById('modal-ruta').classList.remove('open');
-window.editarRuta=function(id){
-  const r=rutas.find(x=>x.id===id);if(!r)return;
-  document.getElementById('ruta-nombre').value=r.nombre||'';
-  document.getElementById('ruta-dur').value=r.duracionH||'';
-  document.getElementById('ruta-origen').value=r.origen||'';
-  document.getElementById('ruta-destino').value=r.destino||'';
-  document.getElementById('ruta-horarios').value=r.horarios||'';
-  document.getElementById('ruta-obs').value=r.obs||'';
-  document.getElementById('ruta-id').value=id;
-  document.getElementById('modal-ruta').classList.add('open');
-};
+window.editarRuta=id=>openModalRuta(id);
 window.guardarRuta=async function(){
   const nombre=document.getElementById('ruta-nombre').value.trim();
   const dur=parseFloat(document.getElementById('ruta-dur').value)||0;
-  if(!nombre||!dur){showToast('Nombre y duración son obligatorios','err');return;}
+  if(!nombre||!dur){showToast('Nombre y duración obligatorios','err');return;}
   const d={nombre,duracionH:dur,origen:document.getElementById('ruta-origen').value.trim(),destino:document.getElementById('ruta-destino').value.trim(),horarios:document.getElementById('ruta-horarios').value.trim(),obs:document.getElementById('ruta-obs').value.trim(),updatedAt:serverTimestamp()};
-  try{
-    const id=document.getElementById('ruta-id').value;
-    if(id)await updateDoc(doc(db,'empresas',S.eId,'rutas',id),d);
-    else{d.createdAt=serverTimestamp();await addDoc(collection(db,'empresas',S.eId,'rutas'),d);}
-    closeModalRuta();showToast('Ruta guardada ✓','ok');cargarRutas();
-  }catch(e){showToast('Error: '+e.message,'err');}
+  try{const id=document.getElementById('ruta-id').value;if(id)await updateDoc(doc(db,'empresas',S.eId,'rutas',id),d);else{d.createdAt=serverTimestamp();await addDoc(collection(db,'empresas',S.eId,'rutas'),d);}closeM('m-ruta');showToast('Ruta guardada ✓','ok');cargarRutas();}catch(e){showToast('Error: '+e.message,'err');}
 };
 window.eliminarRuta=async function(id){
   if(!confirm('¿Eliminar esta ruta?'))return;
-  await deleteDoc(doc(db,'empresas',S.eId,'rutas',id));
-  showToast('Ruta eliminada','ok');cargarRutas();
+  await deleteDoc(doc(db,'empresas',S.eId,'rutas',id));showToast('Ruta eliminada','ok');cargarRutas();
 };
 
-// BUSES
-// cargarBuses replaced by cargarBusesCompleto
-// bus fns moved to flota section
-
-// SELECTORES
+// ── SELECTORES ─────────────────────────────────────────────
 function actualizarSels(){
-  const rSel=document.getElementById('pf-ruta');
-  if(rSel){const v=rSel.value;rSel.innerHTML='<option value="">— Seleccionar ruta —</option>'+rutas.map(r=>`<option value="${r.id}">${r.nombre} (${r.duracionH}h)</option>`).join('');if(v)rSel.value=v;}
-  const bSel=document.getElementById('pf-bus');
-  if(bSel){const v=bSel.value;bSel.innerHTML='<option value="">— Sin asignar —</option>'+buses.map(b=>`<option value="${b.id}">${b.nombre}${b.patente?' · '+b.patente:''}</option>`).join('');if(v)bSel.value=v;}
-  const cSel=document.getElementById('pf-cond');
-  if(cSel){const v=cSel.value;cSel.innerHTML='<option value="">— Seleccionar conductor —</option>'+conductores.map(c=>`<option value="${c.id}">${c.nombre}${c.telefono?' · '+c.telefono:''}</option>`).join('');if(v)cSel.value=v;}
-  const aSel=document.getElementById('pf-aux');
-  if(aSel){const v=aSel.value;aSel.innerHTML='<option value="">— Sin auxiliar —</option>'+auxiliares.map(a=>`<option value="${a.id}">${a.nombre}${a.telefono?' · '+a.telefono:''}</option>`).join('');if(v)aSel.value=v;}
+  const fecha=document.getElementById('pf-fecha')?.value||fechaHoy();
+  // Selector rutas
+  const sr=document.getElementById('pf-ruta');
+  if(sr){const v=sr.value;sr.innerHTML='<option value="">— Seleccionar ruta —</option>'+rutas.map(r=>`<option value="${r.id}">${r.nombre} (${r.duracionH}h)</option>`).join('');if(v)sr.value=v;}
+  // Selector máquinas — solo disponibles
+  const sm=document.getElementById('pf-maq');
+  if(sm){const v=sm.value;const disponibles=maquinas.filter(m=>m.estado==='disponible');sm.innerHTML='<option value="">— Seleccionar máquina —</option>'+disponibles.map(m=>`<option value="${m.id}">MAQ ${m.numero}${m.conductorHabitual?' · '+m.conductorHabitual:''}</option>`).join('');if(v)sm.value=v;}
+  // Selector conductores — solo disponibles en esa fecha
+  const sc=document.getElementById('pf-cond');
+  if(sc){
+    const v=sc.value;
+    const disp=conductores.filter(c=>isDisponible(c.cicloOffset||0,fecha,c.estadoHoy));
+    sc.innerHTML='<option value="">— Seleccionar conductor —</option>'+disp.map(c=>`<option value="${c.id}">${c.nombre}${c.telefono?' · '+c.telefono:''}</option>`).join('');
+    const nodDisp=conductores.filter(c=>!isDisponible(c.cicloOffset||0,fecha,c.estadoHoy));
+    if(nodDisp.length) sc.innerHTML+=`<optgroup label="No disponibles (${nodDisp.length})">` +nodDisp.map(c=>`<option value="${c.id}" disabled style="color:var(--text3);">${c.nombre} — ${getEstadoConductorHoy(c)}</option>`).join('')+'</optgroup>';
+    if(v)sc.value=v;
+  }
+  // Selector auxiliares
+  const sa=document.getElementById('pf-aux');
+  if(sa){const v=sa.value;sa.innerHTML='<option value="">— Sin auxiliar —</option>'+auxiliares.map(a=>`<option value="${a.id}">${a.nombre}${a.telefono?' · '+a.telefono:''}</option>`).join('');if(v)sa.value=v;}
+  // Selector relevo
+  const srel=document.getElementById('pf-relevo');
+  if(srel){const v=srel.value;srel.innerHTML='<option value="">— Sin relevo —</option>'+conductores.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');if(v)srel.value=v;}
 }
 
-// VIAJES
+// ── JORNADA (LEY 16H + DESCANSO 40%) ──────────────────────
+window.verificarJornada=async function(){
+  const condId=document.getElementById('pf-cond').value;
+  const fecha=document.getElementById('pf-fecha').value;
+  const horaSal=document.getElementById('pf-sal').value;
+  const horaLleg=document.getElementById('pf-lleg').value;
+  const warn=document.getElementById('jornada-warn');
+  if(!condId||!fecha){warn.style.display='none';return;}
+  const cond=conductores.find(c=>c.id===condId);
+  if(!cond){warn.style.display='none';return;}
+  try{
+    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fecha),where('conductorId','==',condId)));
+    let horasAcum=0;
+    sn.docs.forEach(d=>{
+      const v=d.data();
+      if(v.horaSalida&&v.horaLlegada){
+        const [sh,sm]=v.horaSalida.split(':').map(Number);
+        const [lh,lm]=v.horaLlegada.split(':').map(Number);
+        horasAcum+=(lh*60+lm-sh*60-sm)/60;
+      }
+    });
+    // Calcular descanso requerido (40% del tiempo conducido)
+    const descReq=horasAcum*0.4;
+    // Horas del viaje actual
+    let horasNuevo=0;
+    if(horaSal&&horaLleg){const[sh,sm]=horaSal.split(':').map(Number);const[lh,lm]=horaLleg.split(':').map(Number);horasNuevo=(lh*60+lm-sh*60-sm)/60;}
+    const total=horasAcum+horasNuevo;
+    warn.style.display='block';
+    let color,msg,barClass;
+    if(total>=5){color='var(--red)';msg=`🔴 ${cond.nombre} alcanzó ${total.toFixed(1)}h de conducción hoy. Máximo permitido: 5h. No puede ser asignado.`;barClass='jb-crit';}
+    else if(total>=4){color='var(--amber)';msg=`⚠ ${cond.nombre} acumula ${horasAcum.toFixed(1)}h hoy. Este viaje llevaría a ${total.toFixed(1)}h — cerca del límite de 5h.`;barClass='jb-warn';}
+    else{color='var(--green)';msg=`✓ ${cond.nombre} lleva ${horasAcum.toFixed(1)}h hoy. Descanso requerido entre viajes: ${descReq.toFixed(0)} min.`;barClass='jb-ok';}
+    const pct=Math.min(100,(total/16)*100);
+    warn.innerHTML=`<div class="jb-top"><span class="jb-label" style="color:${color}">${cond.nombre} — Jornada</span><span class="jb-horas">${total.toFixed(1)}h / 16h</span></div>
+    <div class="jb-track"><div class="jb-fill ${barClass}" style="width:${pct}%"></div></div>
+    <div class="jb-msg" style="color:${color}">${msg}</div>`;
+  }catch(e){warn.style.display='none';}
+};
+
+// ── VIAJES ─────────────────────────────────────────────────
 async function cargarViajesHoy(){
   try{
     const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fechaHoy()),orderBy('horaSalida','asc')));
-    const v=sn.docs.map(d=>({id:d.id,...d.data()}));
-    document.getElementById('m-viajes').textContent=v.length;
-    const html=v.length?v.map(renderViajeCard).join(''):'<div style="color:var(--text3);font-size:12px;padding:12px;">Sin viajes hoy. Planifica el primero.</div>';
-    const d=document.getElementById('dash-viajes'),p=document.getElementById('planif-viajes');
-    if(d)d.innerHTML=html;if(p)p.innerHTML=html;
+    viajesHoy=sn.docs.map(d=>({id:d.id,...d.data()}));
+    document.getElementById('m-viajes').textContent=viajesHoy.length;
+    renderTarjaContent(viajesHoy,document.getElementById('dash-tarja'),true);
+    const pfv=document.getElementById('planif-viajes');
+    if(pfv){renderViajesList(viajesHoy,pfv);}
   }catch(e){console.warn(e.message);}
 }
 
-function renderViajeCard(v){
-  return`<div class="viaje-card">
-    <div class="viaje-top">
-      <div class="viaje-ruta">${v.rutaNombre||'—'}</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="badge b-info">${v.busNombre||v.busId||'Sin bus'}</span>
-        <span class="viaje-fecha">${v.horaSalida||'—'} → ${v.horaLlegada||'—'}</span>
-      </div>
-    </div>
-    <div class="viaje-grid">
-      <div><div class="viaje-field-label">Conductor</div><div class="viaje-field-val">${v.conductorNombre||'—'}</div><div class="viaje-tel">${v.conductorTel||''}</div></div>
-      <div><div class="viaje-field-label">Auxiliar</div><div class="viaje-field-val">${v.auxiliarNombre||'Sin auxiliar'}</div><div class="viaje-tel">${v.auxiliarTel||''}</div></div>
-      <div><div class="viaje-field-label">Tipo día</div><div class="viaje-field-val">${v.tipoDia==='feriado'?'<span class="badge b-purple">Feriado</span>':v.tipoDia||'Hábil'}</div></div>
-      <div><div class="viaje-field-label">Obs.</div><div class="viaje-field-val" style="font-size:11px;color:var(--text2);">${v.obs||'—'}</div></div>
-    </div>
-    <div class="viaje-actions">
-      <button class="btn btn-sm btn-danger" onclick="eliminarViaje('${v.id}')">Eliminar</button>
-    </div>
-  </div>`;
-}
-
-window.limpiarForm=function(){['pf-ruta','pf-bus','pf-cond','pf-aux','pf-obs'].forEach(i=>document.getElementById(i).value='');document.getElementById('pf-sal').value='06:00';document.getElementById('pf-lleg').value='09:30';document.getElementById('pf-tipo').value='habil';};
+window.limpiarPlanif=function(){
+  ['pf-ruta','pf-maq','pf-cond','pf-aux','pf-relevo','pf-obs'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('pf-sal').value='06:00';
+  document.getElementById('pf-lleg').value='09:00';
+  document.getElementById('pf-tipo').value='habil';
+  document.getElementById('pf-especial').checked=false;
+  document.getElementById('jornada-warn').style.display='none';
+};
 
 window.guardarViaje=async function(){
   const rutaId=document.getElementById('pf-ruta').value;
   const condId=document.getElementById('pf-cond').value;
   const fecha=document.getElementById('pf-fecha').value;
   if(!rutaId||!condId||!fecha){showToast('Ruta, conductor y fecha son obligatorios','err');return;}
+  // Verificar jornada - bloquear si >5h
+  const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fecha),where('conductorId','==',condId)));
+  let horasAcum=0;
+  sn.docs.forEach(d=>{const v=d.data();if(v.horaSalida&&v.horaLlegada){const[sh,sm]=v.horaSalida.split(':').map(Number);const[lh,lm]=v.horaLlegada.split(':').map(Number);horasAcum+=(lh*60+lm-sh*60-sm)/60;}});
+  const horaSal=document.getElementById('pf-sal').value;
+  const horaLleg=document.getElementById('pf-lleg').value;
+  let horasNuevo=0;
+  if(horaSal&&horaLleg){const[sh,sm]=horaSal.split(':').map(Number);const[lh,lm]=horaLleg.split(':').map(Number);horasNuevo=(lh*60+lm-sh*60-sm)/60;}
+  if(horasAcum+horasNuevo>5){
+    if(!confirm(`Este conductor ya lleva ${horasAcum.toFixed(1)}h y superaría las 5h máximas. ¿Continuar de todas formas?`))return;
+  }
   const ruta=rutas.find(r=>r.id===rutaId)||{};
   const cond=conductores.find(c=>c.id===condId)||{};
   const auxId=document.getElementById('pf-aux').value;
   const aux=auxiliares.find(a=>a.id===auxId)||null;
-  const busId=document.getElementById('pf-bus').value;
-  const bus=buses.find(b=>b.id===busId)||null;
+  const maqId=document.getElementById('pf-maq').value;
+  const maq=maquinas.find(m=>m.id===maqId)||null;
+  const relId=document.getElementById('pf-relevo').value;
+  const rel=conductores.find(c=>c.id===relId)||null;
+  const esEspecial=document.getElementById('pf-especial').checked;
   try{
     await addDoc(collection(db,'empresas',S.eId,'viajes'),{
       fecha,rutaId,rutaNombre:ruta.nombre||rutaId,
-      busId:busId||'',busNombre:bus?bus.nombre:'Sin bus',
+      maquinaId:maqId||'',maquinaNum:maq?maq.numero:'',maquinaNombre:maq?`MAQ ${maq.numero}`:'Sin asignar',
       conductorId:condId,conductorNombre:cond.nombre||condId,conductorTel:cond.telefono||'',
       auxiliarId:auxId||'',auxiliarNombre:aux?aux.nombre:'',auxiliarTel:aux?aux.telefono||'':'',
-      horaSalida:document.getElementById('pf-sal').value,
-      horaLlegada:document.getElementById('pf-lleg').value,
+      relevoConductorId:relId||'',relevoConductorNombre:rel?rel.nombre:'',
+      horaSalida:horaSal,horaLlegada:horaLleg,
       tipoDia:document.getElementById('pf-tipo').value,
-      obs:document.getElementById('pf-obs').value.trim(),
+      esEspecial,obs:document.getElementById('pf-obs').value.trim(),
       estado:'planificado',createdAt:serverTimestamp(),
     });
-    showToast('Viaje guardado ✓','ok');limpiarForm();cargarViajesHoy();
+    showToast('Viaje guardado ✓','ok');limpiarPlanif();cargarViajesHoy();
+    if(fecha===fechaHoy()) cargarTarjaFecha();
   }catch(e){showToast('Error: '+e.message,'err');}
 };
 
 window.eliminarViaje=async function(id){
   if(!confirm('¿Eliminar este viaje?'))return;
   await deleteDoc(doc(db,'empresas',S.eId,'viajes',id));
-  showToast('Viaje eliminado','ok');cargarViajesHoy();
+  showToast('Eliminado','ok');cargarViajesHoy();cargarTarjaFecha();
 };
 
-// HISTORIAL
+// ── TARJA ──────────────────────────────────────────────────
+const RUTA_COLORES={
+  'Constitución Cama':'#2f72ff',
+  'Constitución':'#0db87a',
+  'Linares':'#0db87a',
+  'Parral':'#f5a623',
+  'Curicó':'#a78bfa',
+};
+
+function renderTarjaContent(viajes,container,mini=false){
+  if(!container)return;
+  if(!viajes.length){container.innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Sin viajes. <span style="color:var(--accent);cursor:pointer;" onclick="go(\'planificar\',null)">Planificar →</span></div>';return;}
+  // Agrupar por ruta
+  const porRuta={};
+  viajes.forEach(v=>{if(!porRuta[v.rutaNombre])porRuta[v.rutaNombre]=[];porRuta[v.rutaNombre].push(v);});
+  container.innerHTML=Object.entries(porRuta).map(([ruta,vjs])=>`
+    <div class="tarja-wrap">
+      <div class="tarja-sec-hdr">
+        <div class="tarja-dot" style="background:${RUTA_COLORES[ruta]||'var(--text3)'}"></div>
+        <div class="tarja-sec-name">${ruta}</div>
+        <div class="tarja-sec-count">${vjs.length} salida${vjs.length!==1?'s':''}</div>
+      </div>
+      <div class="tarja-grid">${vjs.sort((a,b)=>(a.horaSalida||'').localeCompare(b.horaSalida||'')).map(v=>renderTarjetaViaje(v,mini)).join('')}</div>
+    </div>`).join('');
+}
+
+function renderTarjetaViaje(v,mini=false){
+  const sinCond=!v.conductorNombre||v.conductorNombre==='Sin asignar';
+  const badge=sinCond?'<span class="badge b-d">Sin conductor</span>':v.esEspecial?'<span class="badge b-w">Especial</span>':'<span class="badge b-ok">OK</span>';
+  return `<div class="tc${v.esEspecial?' especial':''}${sinCond?' sin-cond':''}" onclick="${mini?'':''}" style="cursor:${mini?'default':'pointer'}">
+    <div class="tc-top">
+      <div class="tc-hora">${v.horaSalida||'—'}</div>
+      <div class="tc-maq${v.esEspecial?' esp':''}">${v.maquinaNombre||v.maquinaNum?`MAQ ${v.maquinaNum}`:'Sin MAQ'}</div>
+    </div>
+    <div class="tc-body">
+      <div class="tc-row"><div class="tc-role">COND</div><div><div class="tc-name">${v.conductorNombre||'Sin asignar'}</div><div class="tc-tel">${v.conductorTel||''}</div></div></div>
+      <div class="tc-row"><div class="tc-role">ASIST</div><div><div class="tc-name">${v.auxiliarNombre||'Sin auxiliar'}</div><div class="tc-tel">${v.auxiliarTel||''}</div></div></div>
+      ${v.relevoConductorNombre?`<div class="tc-relevo"><div class="tc-rlbl">Relevo</div><div class="tc-name" style="font-size:11px;color:var(--text2);">${v.relevoConductorNombre}</div></div>`:''}
+    </div>
+    <div class="tc-foot">
+      <div class="tc-llegada">→ ${v.horaLlegada||'—'}</div>
+      ${badge}
+      ${!mini?`<button class="btn btn-sm btn-d" onclick="event.stopPropagation();eliminarViaje('${v.id}')" style="padding:2px 6px;font-size:9px;">✕</button>`:''}
+    </div>
+  </div>`;
+}
+
+function renderViajesList(viajes,container){
+  if(!viajes.length){container.innerHTML='<div style="color:var(--text3);font-size:12px;">Sin viajes</div>';return;}
+  container.innerHTML=viajes.map(v=>`
+    <div class="vc${v.esEspecial?' especial':''}">
+      <div class="vc-top">
+        <div class="vc-ruta">${v.rutaNombre||'—'} ${v.esEspecial?'<span class="badge b-w">Especial</span>':''}</div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <span class="badge b-i">${v.maquinaNombre||'Sin MAQ'}</span>
+          <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${v.horaSalida||'—'} → ${v.horaLlegada||'—'}</span>
+        </div>
+      </div>
+      <div class="vc-grid">
+        <div><div class="vc-fl">Conductor</div><div class="vc-fv">${v.conductorNombre||'—'}</div><div class="vc-tel">${v.conductorTel||''}</div></div>
+        <div><div class="vc-fl">Auxiliar</div><div class="vc-fv">${v.auxiliarNombre||'Sin auxiliar'}</div><div class="vc-tel">${v.auxiliarTel||''}</div></div>
+        <div><div class="vc-fl">Relevo</div><div class="vc-fv">${v.relevoConductorNombre||'—'}</div></div>
+        <div><div class="vc-fl">Obs.</div><div class="vc-fv" style="font-size:11px;color:var(--text2);">${v.obs||'—'}</div></div>
+      </div>
+      <div class="vc-act">
+        <button class="btn btn-sm btn-d" onclick="eliminarViaje('${v.id}')">Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+window.cargarTarjaFecha=async function(){
+  const fecha=document.getElementById('tarja-fecha').value;
+  if(!fecha)return;
+  document.getElementById('tarja-fecha-lbl').textContent=fmtFecha(fecha);
+  try{
+    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fecha),orderBy('horaSalida','asc')));
+    const viajes=sn.docs.map(d=>({id:d.id,...d.data()}));
+    renderTarjaContent(viajes,document.getElementById('tarja-content'));
+  }catch(e){showToast('Error: '+e.message,'err');}
+};
+
+window.exportarTarja=function(){
+  const fecha=document.getElementById('tarja-fecha').value;
+  const datos=viajesHoy.map(v=>({'Ruta':v.rutaNombre,'MAQ':v.maquinaNombre,'Salida':v.horaSalida,'Llegada':v.horaLlegada,'Conductor':v.conductorNombre,'Tel. conductor':v.conductorTel,'Auxiliar':v.auxiliarNombre,'Tel. auxiliar':v.auxiliarTel,'Relevo':v.relevoConductorNombre,'Especial':v.esEspecial?'Sí':'No','Obs.':v.obs}));
+  const ws=XLSX.utils.json_to_sheet(datos);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Tarja');
+  XLSX.writeFile(wb,`tarja_${fecha}.xlsx`);showToast('Tarja exportada ✓','ok');
+};
+
+// ── HISTORIAL ──────────────────────────────────────────────
 window.buscarHistorial=async function(){
   const desde=document.getElementById('hist-desde').value;
   const hasta=document.getElementById('hist-hasta').value;
@@ -775,13 +1241,13 @@ window.buscarHistorial=async function(){
   try{
     const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','>=',desde),where('fecha','<=',hasta),orderBy('fecha','desc'),orderBy('horaSalida','desc')));
     const viajes=sn.docs.map(d=>({id:d.id,...d.data()}));
-    const el=document.getElementById('historial-list');
-    if(!viajes.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:12px;">Sin viajes en ese período</div>';return;}
+    const el=document.getElementById('hist-list');
+    if(!viajes.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Sin viajes en ese período</div>';return;}
     const xFecha={};viajes.forEach(v=>{if(!xFecha[v.fecha])xFecha[v.fecha]=[];xFecha[v.fecha].push(v);});
     el.innerHTML=Object.entries(xFecha).map(([f,vjs])=>`
-      <div style="margin-bottom:16px;">
-        <div class="sec-lbl" style="margin-bottom:8px;">${new Date(f+'T12:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
-        ${vjs.map(renderViajeCard).join('')}
+      <div style="margin-bottom:14px;">
+        <div class="sec-lbl" style="margin-bottom:7px;">${fmtFecha(f)} · ${vjs.length} viaje${vjs.length!==1?'s':''}</div>
+        ${vjs.map(v=>renderTarjetaViaje(v,false)).length?`<div class="tarja-grid">${vjs.map(v=>renderTarjetaViaje(v,false)).join('')}</div>`:''}
       </div>`).join('');
   }catch(e){showToast('Error: '+e.message,'err');}
 };
@@ -792,155 +1258,364 @@ window.exportarHistorial=async function(){
   if(!desde||!hasta){showToast('Selecciona rango primero','err');return;}
   try{
     const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','>=',desde),where('fecha','<=',hasta),orderBy('fecha','asc')));
-    const data=sn.docs.map(d=>{const v=d.data();return{Fecha:v.fecha,Ruta:v.rutaNombre||'',Bus:v.busNombre||'',Conductor:v.conductorNombre||'','Tel. conductor':v.conductorTel||'',Auxiliar:v.auxiliarNombre||'','Tel. auxiliar':v.auxiliarTel||'',Salida:v.horaSalida||'',Llegada:v.horaLlegada||'','Tipo día':v.tipoDia||'',Obs:v.obs||''};});
-    const ws=XLSX.utils.json_to_sheet(data);
-    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Viajes');
-    XLSX.writeFile(wb,`viajes_${desde}_${hasta}.xlsx`);
-    showToast('Exportado ✓','ok');
+    const data=sn.docs.map(d=>{const v=d.data();return{Fecha:v.fecha,Ruta:v.rutaNombre,MAQ:v.maquinaNombre,Conductor:v.conductorNombre,'Tel. conductor':v.conductorTel,Auxiliar:v.auxiliarNombre,'Tel. auxiliar':v.auxiliarTel,Relevo:v.relevoConductorNombre,Salida:v.horaSalida,Llegada:v.horaLlegada,Especial:v.esEspecial?'Sí':'No','Tipo día':v.tipoDia,Obs:v.obs};});
+    const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Viajes');
+    XLSX.writeFile(wb,`viajes_${desde}_${hasta}.xlsx`);showToast('Exportado ✓','ok');
   }catch(e){showToast('Error: '+e.message,'err');}
 };
 
-window.exportarViajes=async function(){
+window.exportarViajes=function(){
   const hoy=new Date();
-  const ini=new Date(hoy.getFullYear(),hoy.getMonth(),1).toISOString().split('T')[0];
-  const fin=fechaHoy();
-  document.getElementById('hist-desde').value=ini;
-  document.getElementById('hist-hasta').value=fin;
+  document.getElementById('hist-desde').value=new Date(hoy.getFullYear(),hoy.getMonth(),1).toISOString().split('T')[0];
+  document.getElementById('hist-hasta').value=fechaHoy();
   exportarHistorial();
 };
 
-// PERSONAL
-function renderPersonal(tipo){
-  const cache=tipo==='conductores'?conductores:auxiliares;
-  const el=document.getElementById(tipo==='conductores'?'cond-list':'aux-list');
+// ── CALENDARIO 9+3 ─────────────────────────────────────────
+window.cambiarMesCal=function(dir){calMes=new Date(calMes.getFullYear(),calMes.getMonth()+dir,1);renderCalendario();};
+
+async function renderCalendario(){
+  const ano=calMes.getFullYear(),mes=calMes.getMonth();
+  const diasEnMes=new Date(ano,mes+1,0).getDate();
+  const hoy=new Date();const hoyStr=fechaHoy();
+  document.getElementById('cal-mes-lbl').textContent=calMes.toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+  const filtroRuta=document.getElementById('cal-filtro-ruta')?.value||'';
+  let lista=filtroRuta?conductores.filter(c=>c.ruta===filtroRuta):conductores;
+  // Obtener viajes del mes para saber quién está asignado
+  const desde=`${ano}-${String(mes+1).padStart(2,'0')}-01`;
+  const hasta=`${ano}-${String(mes+1).padStart(2,'0')}-${String(diasEnMes).padStart(2,'0')}`;
+  let viajesMes=[];
+  try{
+    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','>=',desde),where('fecha','<=',hasta)));
+    viajesMes=sn.docs.map(d=>d.data());
+  }catch(e){}
+  // Mapear viajes por fecha+conductor
+  const viajeMap={};
+  viajesMes.forEach(v=>{const k=`${v.fecha}|${v.conductorId}`;viajeMap[k]=v;});
+  // Stats hoy
+  const todayConds=lista.map(c=>{
+    const est=getEstadoConductorHoy(c);
+    const asig=viajeMap[`${hoyStr}|${c.id}`];
+    return{...c,estadoCalc:asig?'asignado':est};
+  });
+  document.getElementById('cal-disp').textContent=todayConds.filter(c=>c.estadoCalc==='disponible').length;
+  document.getElementById('cal-asig').textContent=todayConds.filter(c=>c.estadoCalc==='asignado').length;
+  document.getElementById('cal-desc').textContent=todayConds.filter(c=>c.estadoCalc==='descanso').length;
+  document.getElementById('cal-lic').textContent=todayConds.filter(c=>['licencia','vacaciones','permiso'].includes(c.estadoCalc)).length;
+  // Días del mes
+  const dias=Array.from({length:diasEnMes},(_,i)=>i+1);
+  const dowNames=['DO','LU','MA','MI','JU','VI','SA'];
+  // Cabecera
+  let html=`<thead><tr>
+    <th class="th-name">Conductor</th>
+    ${dias.map(d=>{
+      const fecha=new Date(ano,mes,d);
+      const fechaStr=`${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isHoy=fechaStr===hoyStr;
+      return`<th${isHoy?' class="today-h"':''}><div>${d}</div><div style="font-size:8px;">${dowNames[fecha.getDay()]}</div></th>`;
+    }).join('')}
+  </tr></thead>`;
+  // Filas
+  html+=`<tbody>${lista.slice(0,80).map(c=>{
+    const cells=dias.map(d=>{
+      const fechaStr=`${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isHoy=fechaStr===hoyStr;
+      const asigV=viajeMap[`${fechaStr}|${c.id}`];
+      const cicloV=getCicloVal(c.cicloOffset||0,fechaStr);
+      const est=c.estadoHoy&&c.estadoHoy!=='disponible'&&isHoy?c.estadoHoy:'';
+      let ccls,ctxt,tooltip='';
+      if(asigV){ccls='cc-asig';ctxt='✓';tooltip=`${asigV.rutaNombre} ${asigV.horaSalida}`;}
+      else if(est==='vacaciones'||(!est&&cicloV==='V')){ccls='cc-vac';ctxt='V';}
+      else if(est==='licencia'||(!est&&cicloV==='L')){ccls='cc-lic';ctxt='L';}
+      else if(['A','B','C'].includes(cicloV)&&!est){ccls='cc-desc';ctxt=cicloV;}
+      else if(typeof cicloV==='number'||['1','2','3','4','5','6','7','8','9'].includes(String(cicloV))){ccls='cc-work';ctxt=String(cicloV);}
+      else{ccls='cc-empty';ctxt='—';}
+      return`<td title="${tooltip}"><div class="cal-cell ${ccls}${isHoy?' cc-today':''}">${ctxt}</div></td>`;
+    }).join('');
+    return`<tr><td class="td-name"><div style="display:flex;align-items:center;gap:6px;"><div class="av ${avC(c.nombre)}" style="width:18px;height:18px;font-size:8px;">${ini(c.nombre)}</div>${c.nombre}</div></td>${cells}</tr>`;
+  }).join('')}</tbody>`;
+  document.getElementById('cal-table').innerHTML=html;
+  renderDisponiblesHoy();
+}
+
+function renderDisponiblesHoy(){
+  const el=document.getElementById('disp-grid');if(!el)return;
+  const hoy=fechaHoy();
+  const lista=conductores.map(c=>{
+    const v=getCicloVal(c.cicloOffset||0,hoy);
+    const enDesc=['A','B','C'].includes(v);
+    const especial=c.estadoHoy&&c.estadoHoy!=='disponible';
+    const estado=especial?c.estadoHoy:enDesc?'descanso':'disponible';
+    return{...c,estadoReal:estado};
+  }).sort((a,b)=>a.estadoReal==='disponible'?-1:1).slice(0,24);
+  el.innerHTML=lista.map(c=>{
+    const cls=c.estadoReal==='disponible'?'d':c.estadoReal==='descanso'?'r':'r';
+    const estLabel=c.estadoReal==='disponible'?'Disponible':c.estadoReal==='descanso'?'Descanso A/B/C':c.estadoReal;
+    return`<div class="dc ${cls}" onclick="preseleccionarConductor('${c.id}')">
+      <div class="av ${avC(c.nombre)}" style="width:22px;height:22px;font-size:9px;">${ini(c.nombre)}</div>
+      <div><div class="dc-name">${c.nombre.split(' ')[0]} ${c.nombre.split(' ')[1]||''}</div><div class="dc-est ${cls}">${estLabel}</div></div>
+    </div>`;
+  }).join('');
+}
+
+window.preseleccionarConductor=function(id){
+  go('planificar',null);
+  setTimeout(()=>{const s=document.getElementById('pf-cond');if(s){s.value=id;verificarJornada();}},300);
+};
+
+// ── PERSONAL ───────────────────────────────────────────────
+function renderPersonalList(tipo){
+  const cache=tipo==='c'?conductores:auxiliares;
+  const el=document.getElementById(tipo==='c'?'cond-list':'aux-list');
   if(!el)return;
-  if(!cache.length){el.innerHTML=`<div style="color:var(--text3);font-size:12px;padding:14px;">Sin ${tipo} registrados. Agrega el primero con el botón de arriba.</div>`;return;}
+  if(!cache.length){el.innerHTML=`<div style="color:var(--text3);font-size:12px;padding:10px;">Sin ${tipo==='c'?'conductores':'auxiliares'}. Agrega el primero.</div>`;return;}
   el.innerHTML=cache.map(p=>{
-    const av=avC(p.nombre),in2=ini(p.nombre);
-    const ls=p.licVencimiento?licSt(p.licVencimiento):null;
-    return`<div class="person-row" id="pr-${p.id}">
-      <div class="person-hdr" onclick="toggleP('${p.id}')">
-        <div class="av ${av}">${in2}</div>
-        <div class="person-info">
-          <div><div style="font-weight:600;font-size:12px;">${p.nombre||'—'}</div><div style="font-size:10px;color:var(--text3);">${p.rut||'—'}</div></div>
+    const est=tipo==='c'?getEstadoConductorHoy(p):'disponible';
+    const estBadge=est==='disponible'?'b-ok':est==='descanso'?'b-p':'b-w';
+    const estLabel=est==='disponible'?'Disponible':est==='descanso'?'Descanso':est;
+    const licSt=tipo==='c'&&p.licVencimiento?licStatus(p.licVencimiento):null;
+    return`<div class="prow" id="pr-${p.id}">
+      <div class="phdr" onclick="toggleP('${p.id}')">
+        <div class="av ${avC(p.nombre)}">${ini(p.nombre)}</div>
+        <div class="pinfo">
+          <div><div style="font-weight:600;font-size:12px;">${p.nombre||'—'}</div><div style="font-size:10px;color:var(--text3);">${p.ruta||'—'}</div></div>
           <div style="font-size:12px;color:var(--accent);font-family:'DM Mono',monospace;font-weight:600;">${p.telefono||'Sin teléfono'}</div>
-          ${ls?`<span class="badge ${ls.b}">${ls.t}</span>`:'<span class="badge b-gray">—</span>'}
-          <div style="font-size:11px;color:var(--text3);">${p.afp||p.email||''}</div>
-          <button class="btn btn-sm" onclick="event.stopPropagation();openModalPersona('${tipo==='conductores'?'conductor':'auxiliar'}','${p.id}')">Editar</button>
+          <span class="badge ${estBadge}">${estLabel}</span>
+          ${tipo==='c'&&licSt?`<span class="badge ${licSt.badge}">${licSt.txt}</span>`:'<div></div>'}
+          <button class="btn btn-sm" onclick="event.stopPropagation();openModalPersona('${tipo}','${p.id}')">Editar</button>
         </div>
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3);flex-shrink:0;transition:transform .2s;" id="pa-${p.id}"><polyline points="2,4 6.5,8.5 11,4"/></svg>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3);flex-shrink:0;transition:transform .2s;" id="pa-${p.id}"><polyline points="2,4 6,8 10,4"/></svg>
       </div>
-      <div class="person-expand" id="pe-${p.id}">
-        <div class="exp-grid">
-          <div class="exp-sec">
-            <div class="exp-title">Contacto</div>
-            <div class="exp-field"><div class="exp-label">Teléfono celular</div><div class="exp-val" style="color:var(--accent);font-size:16px;font-weight:700;">${p.telefono||'—'}</div></div>
-            <div class="exp-field"><div class="exp-label">Email</div><div class="exp-val" style="font-size:11px;">${p.email||'—'}</div></div>
-            <div class="exp-field"><div class="exp-label">Observaciones</div><div class="exp-val" style="font-size:11px;">${p.obs||'—'}</div></div>
+      <div class="pexp" id="pe-${p.id}">
+        <div class="exp-g">
+          <div class="exp-s">
+            <div class="exp-t">Contacto</div>
+            <div class="exp-f"><div class="exp-l">Teléfono</div><div class="exp-v" style="color:var(--accent);font-size:14px;font-weight:700;">${p.telefono||'—'}</div></div>
+            <div class="exp-f"><div class="exp-l">Email</div><div class="exp-v" style="font-size:11px;">${p.email||'—'}</div></div>
+            <div class="exp-f"><div class="exp-l">RUT</div><div class="exp-v">${p.rut||'—'}</div></div>
           </div>
-          <div class="exp-sec">
-            <div class="exp-title">${tipo==='conductores'?'Licencia de conducir':'Datos'}</div>
-            ${tipo==='conductores'?`
-            <div class="exp-field"><div class="exp-label">Clase</div><div class="exp-val" style="font-size:16px;font-weight:700;">${p.licClase||'A3'}</div></div>
-            <div class="exp-field"><div class="exp-label">Vencimiento</div><div class="exp-val" style="color:${ls?ls.c:'var(--text3)'};">${p.licVencimiento?(p.licVencimiento.toDate?p.licVencimiento.toDate():new Date(p.licVencimiento)).toLocaleDateString('es-CL'):'—'}</div></div>
-            <div class="exp-field"><div class="exp-label">AFP / Salud</div><div class="exp-val">${p.afp||'—'} · ${p.salud||'—'}</div></div>`:`
-            <div class="exp-field"><div class="exp-label">RUT</div><div class="exp-val">${p.rut||'—'}</div></div>`}
+          <div class="exp-s">
+            <div class="exp-t">${tipo==='c'?'Ciclo y licencia':'Estado'}</div>
+            ${tipo==='c'?`
+            <div class="exp-f"><div class="exp-l">Posición ciclo hoy</div><div class="exp-v" style="font-size:14px;font-weight:700;">${getCicloVal(p.cicloOffset||0,fechaHoy())}</div></div>
+            <div class="exp-f"><div class="exp-l">Licencia clase</div><div class="exp-v">${p.licClase||'A3'}</div></div>
+            <div class="exp-f"><div class="exp-l">Vencimiento</div><div class="exp-v" style="color:${licSt?licSt.color:'var(--text3)'};">${p.licVencimiento?(p.licVencimiento.toDate?p.licVencimiento.toDate():new Date(p.licVencimiento)).toLocaleDateString('es-CL'):'—'}</div></div>`:`
+            <div class="exp-f"><div class="exp-l">Ruta habitual</div><div class="exp-v">${p.ruta||'—'}</div></div>`}
           </div>
-          <div class="exp-sec">
-            <div class="exp-title">Último viaje registrado</div>
-            <div style="font-size:11px;color:var(--text3);">Ver en Historial de viajes buscando por fecha.</div>
+          <div class="exp-s">
+            <div class="exp-t">Observaciones</div>
+            <div style="font-size:11px;color:var(--text2);">${p.obs||'Sin observaciones'}</div>
           </div>
         </div>
-        <div class="exp-actions">
-          <button class="btn btn-sm" onclick="openModalPersona('${tipo==='conductores'?'conductor':'auxiliar'}','${p.id}')">Editar datos</button>
-          <button class="btn btn-sm btn-danger" onclick="eliminarP('${p.id}','${tipo}')">Eliminar</button>
+        <div class="exp-act">
+          <button class="btn btn-sm" onclick="openModalPersona('${tipo}','${p.id}')">Editar</button>
+          <button class="btn btn-sm btn-d" onclick="eliminarPersona('${p.id}','${tipo}')">Eliminar</button>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
+function licStatus(v){
+  if(!v)return null;
+  const d=v.toDate?v.toDate():new Date(v);
+  const diff=Math.round((d-new Date())/(864e5));
+  if(diff<0)return{badge:'b-d',txt:`Vencida ${Math.abs(diff)}d`,color:'var(--red)'};
+  if(diff<30)return{badge:'b-w',txt:`Vence en ${diff}d`,color:'var(--amber)'};
+  return{badge:'b-ok',txt:'Vigente',color:'var(--green)'};
+}
+
 window.toggleP=function(id){
   const r=document.getElementById('pr-'+id),a=document.getElementById('pa-'+id);
   const o=r.classList.contains('open');
-  document.querySelectorAll('.person-row').forEach(x=>x.classList.remove('open'));
+  document.querySelectorAll('.prow').forEach(x=>x.classList.remove('open'));
   document.querySelectorAll('[id^="pa-"]').forEach(x=>x.style.transform='');
   if(!o){r.classList.add('open');a.style.transform='rotate(180deg)';}
 };
 
-window.filtrarLista=function(tipo,term){
-  const cache=tipo==='conductores'?conductores:auxiliares;
+window.filtrarPersonal=function(tipo,term){
+  const cache=tipo==='c'?conductores:auxiliares;
   const t=term.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const f=!t?cache:cache.filter(p=>(p.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(t)||(p.rut||'').replace(/[.\-]/g,'').includes(t.replace(/[.\-]/g,'')));
-  const el=document.getElementById(tipo==='conductores'?'cond-list':'aux-list');
-  if(!f.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:14px;">Sin resultados</div>';return;}
-  const tmp=tipo==='conductores'?[...conductores]:[...auxiliares];
-  if(tipo==='conductores')conductores=f;else auxiliares=f;
-  renderPersonal(tipo);
-  if(tipo==='conductores')conductores=tmp;else auxiliares=tmp;
+  const f=!t?cache:cache.filter(p=>(p.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(t)||(p.ruta||'').toLowerCase().includes(t));
+  const el=document.getElementById(tipo==='c'?'cond-list':'aux-list');
+  if(!f.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Sin resultados</div>';return;}
+  const tmp=tipo==='c'?[...conductores]:[...auxiliares];
+  if(tipo==='c')conductores=f;else auxiliares=f;
+  renderPersonalList(tipo);
+  if(tipo==='c')conductores=tmp;else auxiliares=tmp;
 };
 
 window.openModalPersona=function(tipo,id=null){
-  const esAux=tipo==='auxiliar';
-  document.getElementById('mp-title').textContent=id?(esAux?'Editar auxiliar':'Editar conductor'):(esAux?'Agregar auxiliar':'Agregar conductor');
-  document.getElementById('mp-cond-fields').style.display=esAux?'none':'block';
-  document.getElementById('mp-tipo').value=esAux?'auxiliares':'conductores';
+  const esC=tipo==='c';
+  document.getElementById('mp-title').textContent=id?(esC?'Editar conductor':'Editar auxiliar'):(esC?'Agregar conductor':'Agregar auxiliar');
+  document.getElementById('mp-cond-extra').style.display=esC?'block':'none';
+  document.getElementById('mp-tipo').value=tipo;
   document.getElementById('mp-id').value=id||'';
-  ['mp-nombre','mp-rut','mp-tel','mp-email','mp-licvenc','mp-afp','mp-salud','mp-obs'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('mp-sueldo').value='';
+  ['mp-nombre','mp-rut','mp-tel','mp-email','mp-obs','mp-licvenc'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('mp-ciclo').value='0';
+  document.getElementById('mp-estado').value='disponible';
+  document.getElementById('mp-ruta').value='';
   if(id){
-    const cache=esAux?auxiliares:conductores;
+    const cache=esC?conductores:auxiliares;
     const p=cache.find(x=>x.id===id);if(!p)return;
     document.getElementById('mp-nombre').value=p.nombre||'';
     document.getElementById('mp-rut').value=p.rut||'';
     document.getElementById('mp-tel').value=p.telefono||'';
     document.getElementById('mp-email').value=p.email||'';
     document.getElementById('mp-obs').value=p.obs||'';
-    if(!esAux){
-      document.getElementById('mp-sueldo').value=p.sueldoBase||'';
-      document.getElementById('mp-afp').value=p.afp||'';
-      document.getElementById('mp-salud').value=p.salud||'';
-      if(p.licVencimiento){const v=p.licVencimiento.toDate?p.licVencimiento.toDate():new Date(p.licVencimiento);document.getElementById('mp-licvenc').value=v.toISOString().split('T')[0];}
-    }
+    document.getElementById('mp-ciclo').value=p.cicloOffset||0;
+    document.getElementById('mp-estado').value=p.estadoHoy||'disponible';
+    document.getElementById('mp-ruta').value=p.ruta||'';
+    if(esC&&p.licVencimiento){const v=p.licVencimiento.toDate?p.licVencimiento.toDate():new Date(p.licVencimiento);document.getElementById('mp-licvenc').value=v.toISOString().split('T')[0];}
   }
-  document.getElementById('modal-persona').classList.add('open');
+  openM('m-persona');
 };
-window.closeModalPersona=()=>document.getElementById('modal-persona').classList.remove('open');
+window.closeModalPersona=()=>closeM('m-persona');
 
 window.guardarPersona=async function(){
   const nombre=document.getElementById('mp-nombre').value.trim();
-  const rut=document.getElementById('mp-rut').value.trim();
-  const tel=document.getElementById('mp-tel').value.trim();
-  if(!nombre||!rut){showToast('Nombre y RUT son obligatorios','err');return;}
-  const col=document.getElementById('mp-tipo').value;
-  const esAux=col==='auxiliares';
-  const d={nombre,rut,telefono:tel,email:document.getElementById('mp-email').value.trim(),obs:document.getElementById('mp-obs').value.trim(),nombre_tokens:tok(nombre),rut_tokens:tokRut(rut),updatedAt:serverTimestamp()};
-  if(!esAux){d.sueldoBase=parseFloat(document.getElementById('mp-sueldo').value)||600000;d.afp=document.getElementById('mp-afp').value.trim();d.salud=document.getElementById('mp-salud').value.trim();d.licClase=document.getElementById('mp-lic').value.split(' ')[0];const v=document.getElementById('mp-licvenc').value;if(v)d.licVencimiento=new Date(v);}
+  if(!nombre){showToast('Nombre obligatorio','err');return;}
+  const tipo=document.getElementById('mp-tipo').value;
+  const esC=tipo==='c';
+  const col=esC?'conductores':'auxiliares';
+  const d={nombre,rut:document.getElementById('mp-rut').value.trim(),telefono:document.getElementById('mp-tel').value.trim(),email:document.getElementById('mp-email').value.trim(),ruta:document.getElementById('mp-ruta').value,cicloOffset:parseInt(document.getElementById('mp-ciclo').value)||0,estadoHoy:document.getElementById('mp-estado').value,obs:document.getElementById('mp-obs').value.trim(),updatedAt:serverTimestamp()};
+  if(esC){d.licClase=document.getElementById('mp-lic').value.split(' ')[0];const v=document.getElementById('mp-licvenc').value;if(v)d.licVencimiento=new Date(v);}
   try{
     const id=document.getElementById('mp-id').value;
     if(id)await updateDoc(doc(db,'empresas',S.eId,col,id),d);
     else{d.createdAt=serverTimestamp();await addDoc(collection(db,'empresas',S.eId,col),d);}
-    closeModalPersona();showToast((esAux?'Auxiliar':'Conductor')+' guardado ✓','ok');
+    closeM('m-persona');showToast((esC?'Conductor':'Auxiliar')+' guardado ✓','ok');
   }catch(e){showToast('Error: '+e.message,'err');}
 };
 
-window.eliminarP=async function(id,tipo){
-  if(!confirm('¿Eliminar este registro?'))return;
-  await deleteDoc(doc(db,'empresas',S.eId,tipo,id));
+window.eliminarPersona=async function(id,tipo){
+  if(!confirm('¿Eliminar?'))return;
+  const col=tipo==='c'?'conductores':'auxiliares';
+  await deleteDoc(doc(db,'empresas',S.eId,col,id));
   showToast('Eliminado ✓','ok');
 };
 
-// ALERTAS
+// ── MÁQUINAS ───────────────────────────────────────────────
+function renderMaquinasList(lista){
+  const el=document.getElementById('maq-list');if(!el)return;
+  if(!lista.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Sin máquinas</div>';return;}
+  el.innerHTML=`<div class="tcard"><table>
+    <thead><tr><th>MAQ</th><th>Patente</th><th>Conductor habitual</th><th>Asistente habitual</th><th>Estado</th><th>Rev. Técnica</th><th>Mant.</th><th></th></tr></thead>
+    <tbody>${lista.map(m=>{
+      const estBadge=m.estado==='disponible'?'b-ok':m.estado==='mantencion'?'b-w':'b-d';
+      const estLabel=m.estado==='disponible'?'Disponible':m.estado==='mantencion'?'Mantención':'Pana';
+      const rtec=m.revisionTecnica?diasHasta(m.revisionTecnica):null;
+      const mant=m.proximaMantencion?diasHasta(m.proximaMantencion):null;
+      return`<tr>
+        <td style="font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">MAQ ${m.numero}</td>
+        <td style="font-size:11px;color:var(--text2);">${m.patente||'—'}</td>
+        <td style="font-size:12px;">${m.conductorHabitual||'—'}</td>
+        <td style="font-size:12px;">${m.asistenteHabitual||'—'}</td>
+        <td><span class="badge ${estBadge}">${estLabel}</span></td>
+        <td>${rtec!==null?`<span style="color:${rtec<0?'var(--red)':rtec<30?'var(--amber)':'var(--green)'};">${rtec<0?`Vencida ${Math.abs(rtec)}d`:rtec<30?`${rtec}d`:'OK'}</span>`:'—'}</td>
+        <td>${mant!==null?`<span style="color:${mant<0?'var(--red)':mant<30?'var(--amber)':'var(--green)'};">${mant<0?'Vencida':mant<30?`${mant}d`:'OK'}</span>`:'—'}</td>
+        <td><div style="display:flex;gap:4px;">
+          <button class="btn btn-sm" onclick="editarMaquina('${m.id}')">Editar</button>
+          <button class="btn btn-sm" onclick="cambiarEstadoMaq('${m.id}',${JSON.stringify(m.estado)})">${m.estado==='disponible'?'Pana':'Disponible'}</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+function diasHasta(fecha){
+  if(!fecha)return null;
+  const v=fecha.toDate?fecha.toDate():new Date(fecha);
+  return Math.round((v-new Date())/(864e5));
+}
+
+window.filtrarMaquinas=function(t){
+  const f=!t?maquinas:maquinas.filter(m=>`MAQ ${m.numero}`.toLowerCase().includes(t.toLowerCase())||(m.patente||'').toLowerCase().includes(t.toLowerCase()));
+  renderMaquinasList(f);
+};
+
+window.filtrarEstMaq=function(est){
+  filtroEstMaqActivo=est;
+  document.querySelectorAll('[id^="fem-"]').forEach(b=>{b.style.borderColor='';b.style.color='';});
+  const btn=document.getElementById('fem-'+est[0]);if(btn){btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
+  const f=est==='todas'?maquinas:maquinas.filter(m=>m.estado===est);
+  renderMaquinasList(f);
+};
+
+window.openModalMaquina=function(id=null){
+  document.getElementById('mmaq-title').textContent=id?'Editar máquina':'Agregar máquina';
+  ['mq-num','mq-pat','mq-marca','mq-modelo','mq-anio','mq-cond','mq-asist','mq-rtec','mq-pcirc','mq-mant','mq-obs'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('mq-est').value='disponible';
+  document.getElementById('mq-id').value=id||'';
+  if(id){
+    const m=maquinas.find(x=>x.id===id);if(!m)return;
+    document.getElementById('mq-num').value=m.numero||'';
+    document.getElementById('mq-pat').value=m.patente||'';
+    document.getElementById('mq-marca').value=m.marca||'';
+    document.getElementById('mq-modelo').value=m.modelo||'';
+    document.getElementById('mq-anio').value=m.año||'';
+    document.getElementById('mq-cond').value=m.conductorHabitual||'';
+    document.getElementById('mq-asist').value=m.asistenteHabitual||'';
+    document.getElementById('mq-est').value=m.estado||'disponible';
+    document.getElementById('mq-obs').value=m.obs||'';
+    ['rtec:revisionTecnica','pcirc:permisoCirculacion','mant:proximaMantencion'].forEach(pair=>{const[s,f]=pair.split(':');if(m[f]){const v=m[f].toDate?m[f].toDate():new Date(m[f]);document.getElementById('mq-'+s).value=v.toISOString().split('T')[0];}});
+  }
+  openM('m-maquina');
+};
+window.editarMaquina=id=>openModalMaquina(id);
+window.closeModalMaquina=()=>closeM('m-maquina');
+
+window.guardarMaquina=async function(){
+  const num=parseInt(document.getElementById('mq-num').value)||0;
+  if(!num){showToast('Número de máquina obligatorio','err');return;}
+  const d={numero:num,nombre:`MAQ ${num}`,patente:document.getElementById('mq-pat').value.trim(),marca:document.getElementById('mq-marca').value.trim(),modelo:document.getElementById('mq-modelo').value.trim(),año:parseInt(document.getElementById('mq-anio').value)||0,conductorHabitual:document.getElementById('mq-cond').value.trim(),asistenteHabitual:document.getElementById('mq-asist').value.trim(),estado:document.getElementById('mq-est').value,obs:document.getElementById('mq-obs').value.trim(),updatedAt:serverTimestamp()};
+  ['rtec:revisionTecnica','pcirc:permisoCirculacion','mant:proximaMantencion'].forEach(pair=>{const[s,f]=pair.split(':');const v=document.getElementById('mq-'+s).value;if(v)d[f]=new Date(v);});
+  try{const id=document.getElementById('mq-id').value;if(id)await updateDoc(doc(db,'empresas',S.eId,'maquinas',id),d);else{d.createdAt=serverTimestamp();await addDoc(collection(db,'empresas',S.eId,'maquinas'),d);}closeM('m-maquina');showToast('Máquina guardada ✓','ok');}
+  catch(e){showToast('Error: '+e.message,'err');}
+};
+
+window.cambiarEstadoMaq=async function(id,estActual){
+  const nuevoEst=estActual==='disponible'?'pana':'disponible';
+  await updateDoc(doc(db,'empresas',S.eId,'maquinas',id),{estado:nuevoEst,updatedAt:serverTimestamp()});
+  showToast(`Máquina marcada como ${nuevoEst} ✓`,'ok');
+  if(nuevoEst==='pana'){
+    const m=maquinas.find(x=>x.id===id);
+    await addDoc(collection(db,'empresas',S.eId,'alertas'),{tipo:'maquina_pana',nivel:'critica',mensaje:`MAQ ${m?.numero||id} — en pana en ruta`,resuelta:false,timestamp:serverTimestamp()});
+  }
+};
+
+window.importarMaquinasExcel=()=>document.getElementById('imp-maq').click();
+window.procesarImportMaq=async function(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const wb=XLSX.read(e.target.result,{type:'binary'});
+    const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    let ok=0;
+    for(const row of data){
+      const num=parseInt(row['numero']||row['Número']||row['MAQ']||0);
+      if(!num)continue;
+      try{
+        const d={numero:num,nombre:`MAQ ${num}`,patente:(row['patente']||'').toString().trim(),conductorHabitual:(row['conductor']||'').toString().trim(),asistenteHabitual:(row['asistente']||'').toString().trim(),estado:'disponible',createdAt:serverTimestamp(),updatedAt:serverTimestamp()};
+        await addDoc(collection(db,'empresas',S.eId,'maquinas'),d);ok++;
+      }catch(ex){}
+    }
+    showToast(`${ok} máquinas importadas ✓`,'ok');inp.value='';
+  };reader.readAsBinaryString(file);
+};
+
+</script>
+
+<script type="module">// ── ALERTAS ────────────────────────────────────────────────
 function renderAlertas(){
   ['dash-alerts','all-alerts'].forEach(elId=>{
     const el=document.getElementById(elId);if(!el)return;
-    if(!alertas.length){el.innerHTML='<div style="padding:14px;color:var(--text3);font-size:12px;">Sin alertas activas</div>';return;}
-    el.innerHTML=alertas.slice(0,elId==='dash-alerts'?3:50).map(a=>`
+    if(!alertas.length){el.innerHTML='<div style="padding:13px;color:var(--text3);font-size:12px;">Sin alertas activas</div>';return;}
+    el.innerHTML=alertas.slice(0,elId==='dash-alerts'?4:100).map(a=>`
       <div class="alert-item">
         <div class="adot" style="background:${a.nivel==='critica'?'var(--red)':a.nivel==='preventiva'?'var(--amber)':'var(--green)'}"></div>
-        <div class="abody"><div class="atitle">${a.mensaje||'Alerta'}</div><div class="adesc">${a.conductorNombre||''}</div></div>
+        <div class="abody"><div class="atitle">${a.mensaje||'Alerta'}</div><div class="adesc">${a.conductorNombre||a.busNombre||''}</div></div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-          <div class="atime">${a.timestamp?.toDate?a.timestamp.toDate().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}):'—'}</div>
+          <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;">${a.timestamp?.toDate?a.timestamp.toDate().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}):'—'}</div>
           <button class="btn btn-sm" onclick="resolverAlerta('${a.id}')">Resolver</button>
         </div>
       </div>`).join('');
@@ -951,449 +1626,155 @@ window.resolverAlerta=async function(id){
   showToast('Alerta resuelta ✓','ok');
 };
 
-// GPS
-const GPS={
-  'Bus 03':{lat:-36.529,lng:-72.080,vel:0, km:98, ruta:'Talca→Chillán', cond:'M. Torres',   est:'parado', col:'#f5a623'},
-  'Bus 07':{lat:-33.895,lng:-70.786,vel:95,km:45, ruta:'Stgo→Talca',   cond:'A. Sepúlveda',est:'en_ruta',col:'#0db87a'},
-  'Bus 14':{lat:-35.182,lng:-71.529,vel:102,km:87,ruta:'Talca→Stgo',   cond:'C. Muñoz',    est:'en_ruta',col:'#0db87a'},
-  'Bus 18':{lat:-34.170,lng:-70.980,vel:88,km:120,ruta:'Talca→Rancagua',cond:'L. Contreras',est:'en_ruta',col:'#0db87a'},
-  'Bus 21':{lat:-34.985,lng:-71.239,vel:0, km:55, ruta:'Talca→Curicó', cond:'J. Fuentes',  est:'parado', col:'#f5a623'},
-  'Bus 06':{lat:-35.421,lng:-71.662,vel:0, km:0,  ruta:'Garaje',        cond:'Sin asignar', est:'garaje', col:'#50596e'},
-};
-let leafletMarkers={};
-
-function initGPS(){
-  if(mapInited)return;mapInited=true;
-  leafletMap=L.map('map',{center:[-34.5,-71.2],zoom:8});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(leafletMap);
-  L.circleMarker([-35.4264,-71.6554],{radius:8,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Talca</strong>');
-  L.circleMarker([-33.450,-70.668],{radius:8,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Santiago</strong>');
-  Object.entries(GPS).forEach(([id,b])=>addMarker(id,b));
-  renderGPS();
-  gpsInt=setInterval(()=>{simGPS();renderGPS();},30000);
-  setInterval(monitorGPS,15000);
-}
-
-function busIcon(id,b){
-  const n=id.replace('Bus ','');
-  const pulse=b.est==='en_ruta'?`<div style="position:absolute;top:-9px;left:-9px;width:50px;height:50px;border-radius:50%;border:2px solid ${b.col};animation:gP 2s infinite;opacity:.3;"></div>`:'';
-  return L.divIcon({html:`<style>@keyframes gP{0%,100%{transform:scale(1);opacity:.3}to{transform:scale(1.7);opacity:0}}</style><div style="position:relative;display:flex;flex-direction:column;align-items:center;">${pulse}<div style="width:32px;height:32px;border-radius:50%;background:${b.col};display:flex;align-items:center;justify-content:center;border:2.5px solid rgba(255,255,255,.9);font-weight:700;font-size:11px;font-family:'DM Mono',monospace;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.6);z-index:1;">${n}</div><div style="background:#131825;border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:1px 5px;font-size:9px;margin-top:2px;white-space:nowrap;font-family:'DM Mono',monospace;color:#8891aa;">${b.vel>0?b.vel+' km/h':'Parado'}</div></div>`,className:'',iconSize:[32,50],iconAnchor:[16,16]});
-}
-
-function addMarker(id,b){
-  if(leafletMarkers[id]){leafletMarkers[id].setLatLng([b.lat,b.lng]);leafletMarkers[id].setIcon(busIcon(id,b));}
-  else{const m=L.marker([b.lat,b.lng],{icon:busIcon(id,b)});m.addTo(leafletMap);m.on('click',()=>selGPS(id));leafletMarkers[id]=m;}
-}
-
-function simGPS(){
-  Object.entries(GPS).forEach(([id,b])=>{
-    if(b.est==='en_ruta'){b.lat+=(id==='Bus 07'?0.002:-0.002)+(Math.random()-.5)*.001;b.lng+=(Math.random()-.5)*.001;b.vel=Math.round(Math.max(75,Math.min(115,b.vel+(Math.random()-.5)*8)));b.km=Math.round(b.km+b.vel/120);addMarker(id,b);}
-  });
-  if(selBus)selGPS(selBus);
-}
-
-function monitorGPS(){
-  const als=[];
-  Object.entries(GPS).forEach(([id,b])=>{
-    if(b.est==='en_ruta'&&b.vel<5&&b.km>5)als.push(`${id} detenido en ruta (${b.ruta})`);
-    if(b.est==='en_ruta'&&b.vel>=5&&b.vel<30)als.push(`${id} muy lento — posible atraso (${b.vel} km/h)`);
-  });
-  const bar=document.getElementById('gps-alerta-bar');
-  if(bar){
-    if(als.length){bar.style.display='flex';document.getElementById('gps-alerta-txt').textContent=als.join(' · ');if(!bar.dataset.n){showToast('⚠ '+als[0],'err');bar.dataset.n='1';}}
-    else{bar.style.display='none';delete bar.dataset.n;}
-  }
-}
-
-function renderGPS(){
-  const lista=Object.entries(GPS).filter(([,b])=>gpsFilter==='todos'||b.est===gpsFilter);
-  document.getElementById('gps-count').textContent=lista.length+' buses';
-  document.getElementById('gps-bus-list').innerHTML=lista.map(([id,b])=>`
-    <div class="bus-item${selBus===id?' selected':''}" onclick="selGPS('${id}')">
-      <div class="bus-name-row">
-        <div class="bus-name-gps"><div class="bus-sdot" style="background:${b.col};"></div>${id}</div>
-        <span class="badge ${b.est==='en_ruta'?'b-ok':b.est==='parado'?'b-warn':'b-gray'}">${b.est==='en_ruta'?'En ruta':b.est==='parado'?'Parado':'Garaje'}</span>
-      </div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">${b.cond} · ${b.ruta}</div>
-      <div style="display:flex;gap:10px;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;"><span>${b.vel} km/h</span><span>${b.km} km</span></div>
-    </div>`).join('');
-}
-
-window.selGPS=function(id){
-  selBus=id;const b=GPS[id];if(!b)return;
-  leafletMap.flyTo([b.lat,b.lng],12,{duration:1.2});
-  leafletMarkers[id]?.openPopup();
-  const sc=b.est==='en_ruta'?'var(--green)':b.est==='parado'?'var(--amber)':'var(--text3)';
-  document.getElementById('gps-detail-main').innerHTML=`
-    <div style="font-weight:600;font-size:13px;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${id}
-      <span style="font-size:11px;font-weight:400;color:${sc};background:${sc}22;border:1px solid ${sc}44;border-radius:999px;padding:2px 8px;">${b.est==='en_ruta'?'En ruta':b.est==='parado'?'Parado':'Garaje'}</span>
-    </div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">${b.cond} · ${b.ruta}</div>
-    <div class="gps-stats-row">
-      <div class="gstat"><div class="gstat-label">Velocidad</div><div class="gstat-val" style="color:${b.vel>0?'var(--green)':'var(--text2)'}">${b.vel}<span class="gstat-unit"> km/h</span></div></div>
-      <div class="gstat"><div class="gstat-label">Km hoy</div><div class="gstat-val">${b.km}<span class="gstat-unit"> km</span></div></div>
-      <div class="gstat"><div class="gstat-label">Coords</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);margin-top:4px;">${b.lat.toFixed(4)}, ${b.lng.toFixed(4)}</div></div>
-    </div>`;
-  document.getElementById('api-preview').innerHTML=`<span class="ak">"bus_id"</span>: <span class="av2">"${id}"</span>,\n<span class="ak">"lat"</span>: <span class="av2">${b.lat.toFixed(5)}</span>,\n<span class="ak">"lng"</span>: <span class="av2">${b.lng.toFixed(5)}</span>,\n<span class="ak">"speed"</span>: <span class="av2">${b.vel}</span>`;
-  renderGPS();
-};
-
-window.setGpsFilter=function(f,btn){gpsFilter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderGPS();};
-
-// IMPORTAR / EXPORTAR
-window.previewImport=function(inp,tipo){
+// ── IMPORTAR / EXPORTAR ────────────────────────────────────
+window.previewImp=function(inp,tipo){
   const file=inp.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
     const wb=XLSX.read(e.target.result,{type:'binary'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    const data=XLSX.utils.sheet_to_json(ws,{defval:''});
-    importTemp={data,tipo};
+    const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    impTemp={data,tipo};
     if(!data.length){showToast('Archivo vacío','err');return;}
     const cols=Object.keys(data[0]);
-    document.getElementById('import-thead').innerHTML='<tr>'+cols.map(c=>`<th style="font-size:10px;color:var(--text3);padding:6px 10px;border-bottom:1px solid var(--border);background:var(--bg3);">${c}</th>`).join('')+'</tr>';
-    document.getElementById('import-tbody').innerHTML=data.slice(0,3).map(r=>'<tr>'+cols.map(c=>`<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;">${r[c]||''}</td>`).join('')+'</tr>').join('');
-    document.getElementById('import-preview').style.display='block';
-    document.getElementById('import-status').innerHTML=`<span style="color:var(--green);">${data.length} filas encontradas — listo para importar</span>`;
-  };
-  reader.readAsBinaryString(file);
+    document.getElementById('imp-thead').innerHTML='<tr>'+cols.map(c=>`<th style="font-size:10px;color:var(--text3);padding:5px 9px;border-bottom:1px solid var(--border);background:var(--bg3);">${c}</th>`).join('')+'</tr>';
+    document.getElementById('imp-tbody').innerHTML=data.slice(0,3).map(r=>'<tr>'+cols.map(c=>`<td style="padding:5px 9px;border-bottom:1px solid var(--border);font-size:11px;">${r[c]||''}</td>`).join('')+'</tr>').join('');
+    document.getElementById('imp-prev').style.display='block';
+    document.getElementById('imp-status').innerHTML=`<span style="color:var(--green);">${data.length} filas encontradas</span>`;
+  };reader.readAsBinaryString(file);
 };
 
 window.importarPersonal=async function(tipo){
-  if(!importTemp){showToast('Carga un archivo primero','err');return;}
-  const{data}=importTemp;
-  const col=tipo==='conductor'?'conductores':'auxiliares';
-  const st=document.getElementById('import-status');
-  st.innerHTML='<span style="color:var(--amber);">Importando… no cierres la ventana</span>';
+  if(!impTemp){showToast('Carga un archivo primero','err');return;}
+  const{data}=impTemp;const esC=tipo==='c';
+  const col=esC?'conductores':'auxiliares';
+  const st=document.getElementById('imp-status');
+  st.innerHTML='<span style="color:var(--amber);">Importando…</span>';
   let ok=0,err=0;
   for(const row of data){
-    const n=(row['nombre']||row['Nombre']||'').toString().trim();
-    const r=(row['rut']||row['RUT']||'').toString().trim();
-    if(!n||!r){err++;continue;}
+    const nombre=(row['nombre']||row['Nombre']||'').toString().trim();
+    if(!nombre){err++;continue;}
     try{
-      const d={nombre:n,rut:r,telefono:(row['telefono']||row['Teléfono']||'').toString().trim(),email:(row['email']||row['Email']||'').toString().trim(),nombre_tokens:tok(n),rut_tokens:tokRut(r),estado:'activo',createdAt:serverTimestamp(),updatedAt:serverTimestamp()};
-      if(tipo==='conductor'){d.afp=(row['afp']||row['AFP']||'Habitat').toString().trim();d.salud=(row['salud']||row['Salud']||'Fonasa').toString().trim();d.sueldoBase=parseFloat(row['sueldo_base']||600000)||600000;d.licClase=(row['lic_clase']||'A3').toString().trim();if(row['lic_vencimiento'])d.licVencimiento=new Date(row['lic_vencimiento']);}
+      const d={nombre,rut:(row['rut']||row['RUT']||'').toString().trim(),telefono:(row['telefono']||row['Teléfono']||'').toString().trim(),email:(row['email']||'').toString().trim(),ruta:(row['ruta']||row['Ruta']||'').toString().trim(),cicloOffset:parseInt(row['ciclo_offset']||0)||0,estadoHoy:'disponible',createdAt:serverTimestamp(),updatedAt:serverTimestamp()};
+      if(esC){d.licClase=(row['lic_clase']||'A3').toString().trim();if(row['lic_vencimiento'])d.licVencimiento=new Date(row['lic_vencimiento']);}
       await addDoc(collection(db,'empresas',S.eId,col),d);ok++;
     }catch(ex){err++;}
   }
-  st.innerHTML=`<span style="color:var(--green);">✓ ${ok} registros importados${err?' · '+err+' con errores':''}</span>`;
-  showToast(`${ok} ${tipo==='conductor'?'conductores':'auxiliares'} importados ✓`,'ok');
-  importTemp=null;
+  st.innerHTML=`<span style="color:var(--green);">✓ ${ok} importados${err?' · '+err+' errores':''}</span>`;
+  showToast(`${ok} importados ✓`,'ok');impTemp=null;
 };
 
-window.descargarPlantilla=function(tipo){
-  const esCond=tipo==='conductor';
-  const cols=esCond?['nombre','rut','telefono','email','afp','salud','sueldo_base','lic_clase','lic_vencimiento']:['nombre','rut','telefono','email'];
-  const ej=esCond?['Juan Pérez Soto','12.345.678-9','+56 9 1234 5678','juan@mail.com','Habitat','Fonasa',600000,'A3','2027-06-30']:['María González','13.456.789-0','+56 9 8765 4321','maria@mail.com'];
-  const ws=XLSX.utils.aoa_to_sheet([cols,ej]);
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,esCond?'Conductores':'Auxiliares');
-  XLSX.writeFile(wb,`plantilla_${tipo}es.xlsx`);
-  showToast('Plantilla descargada ✓','ok');
+window.dlPlantilla=function(tipo){
+  const esC=tipo==='c';
+  const cols=esC?['nombre','rut','telefono','email','ruta','ciclo_offset','lic_clase','lic_vencimiento']:['nombre','rut','telefono','email','ruta'];
+  const ej=esC?['Juan Pérez Soto','12.345.678-9','+56 9 1234 5678','juan@mail.com','Constitución',0,'A3','2027-06-30']:['María González','13.456.789-0','+56 9 8765 4321','maria@mail.com','Linares'];
+  const ws=XLSX.utils.aoa_to_sheet([cols,ej]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,esC?'Conductores':'Auxiliares');
+  XLSX.writeFile(wb,`plantilla_${esC?'conductores':'auxiliares'}.xlsx`);showToast('Plantilla descargada ✓','ok');
 };
 
 window.exportarPersonal=function(tipo){
-  const cache=tipo==='conductor'?conductores:auxiliares;
-  if(!cache.length){showToast('Sin datos para exportar','err');return;}
-  const data=cache.map(p=>({Nombre:p.nombre||'',RUT:p.rut||'',Teléfono:p.telefono||'',Email:p.email||'',...(tipo==='conductor'?{AFP:p.afp||'',Salud:p.salud||'','Sueldo base':p.sueldoBase||0,Licencia:p.licClase||''}:{})}));
-  const ws=XLSX.utils.json_to_sheet(data);
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,tipo==='conductor'?'Conductores':'Auxiliares');
-  XLSX.writeFile(wb,`${tipo}es_${fechaHoy()}.xlsx`);
-  showToast('Exportado ✓','ok');
+  const cache=tipo==='c'?conductores:auxiliares;
+  if(!cache.length){showToast('Sin datos','err');return;}
+  const data=cache.map(p=>({'Nombre':p.nombre||'','RUT':p.rut||'','Teléfono':p.telefono||'','Email':p.email||'','Ruta':p.ruta||'','Estado hoy':getEstadoConductorHoy(p),'Ciclo offset':p.cicloOffset||0,...(tipo==='c'?{'Licencia':p.licClase||''}:{})}));
+  const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,tipo==='c'?'Conductores':'Auxiliares');
+  XLSX.writeFile(wb,`${tipo==='c'?'conductores':'auxiliares'}_${fechaHoy()}.xlsx`);showToast('Exportado ✓','ok');
 };
 
-// NAVEGACIÓN
-const pNames={dashboard:'Dashboard',alertas:'Alertas',planificacion:'Planificar viaje',historial:'Historial de viajes',rutas:'Rutas',conductores:'Conductores',auxiliares:'Auxiliares',gps:'GPS — Flota',buses:'Flota — fichas de buses',importar:'Importar / Exportar'};
+// ── GPS DEMO ───────────────────────────────────────────────
+const GPS_BUSES={
+  'MAQ 1300':{lat:-35.4264,lng:-71.6554,vel:0,km:92,ruta:'Talca → Consti Cama',cond:'Edmundo Valenzuela',est:'parado',col:'#f5a623'},
+  'MAQ 770':{lat:-33.895,lng:-70.786,vel:95,km:48,ruta:'Stgo → Talca',cond:'Pablo Ahumada',est:'en_ruta',col:'#0db87a'},
+  'MAQ 1330':{lat:-35.182,lng:-71.529,vel:102,km:87,ruta:'Talca → Consti Cama',cond:'Wenceslao Muñoz',est:'en_ruta',col:'#0db87a'},
+  'MAQ 820':{lat:-34.170,lng:-70.980,vel:88,km:55,ruta:'Linares → Talca',cond:'J. Manuel Guerra',est:'en_ruta',col:'#0db87a'},
+  'MAQ 1140':{lat:-35.421,lng:-71.662,vel:0,km:0,ruta:'Garaje',cond:'Raul Castro',est:'garaje',col:'#50596e'},
+};
+let lMarkers={};
 
-// ── BUSES / FLOTA ─────────────────────────────────────────
-const RUTAS_DEFAULT = [
-  {nombre:'Talca → Santiago',duracionH:3,origen:'Talca',destino:'Santiago',horarios:'06:00, 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00',obs:'Ruta principal · Autopista del Maule'},
-  {nombre:'Santiago → Talca',duracionH:3,origen:'Santiago',destino:'Talca',horarios:'06:00, 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00',obs:'Ruta principal · retorno'},
-  {nombre:'Talca → Curicó',duracionH:1.5,origen:'Talca',destino:'Curicó',horarios:'07:00, 09:00, 11:00, 13:00, 15:00, 17:00',obs:'Ruta regional'},
-  {nombre:'Curicó → Talca',duracionH:1.5,origen:'Curicó',destino:'Talca',horarios:'07:30, 09:30, 11:30, 13:30, 15:30, 17:30',obs:'Retorno regional'},
-  {nombre:'Talca → Constitución',duracionH:2,origen:'Talca',destino:'Constitución',horarios:'07:00, 11:00, 15:00',obs:'Ruta costera · Región del Maule'},
-  {nombre:'Talca → Linares',duracionH:1.2,origen:'Talca',destino:'Linares',horarios:'07:00, 09:00, 11:00, 13:00, 16:00',obs:''},
-  {nombre:'Talca → Chillán',duracionH:2.5,origen:'Talca',destino:'Chillán',horarios:'07:00, 10:00, 14:00, 17:00',obs:'Ruta sur'},
-  {nombre:'Talca → Rancagua',duracionH:2.8,origen:'Talca',destino:'Rancagua',horarios:'06:30, 10:00, 14:00, 17:30',obs:'Vía San Fernando'},
-  {nombre:'Talca → San Fernando',duracionH:2,origen:'Talca',destino:'San Fernando',horarios:'07:00, 11:00, 15:00, 18:00',obs:''},
-];
-
-async function inicializarRutasDefault(){
-  const sn=await getDocs(collection(db,'empresas',S.eId,'rutas'));
-  if(sn.empty){
-    for(const r of RUTAS_DEFAULT){
-      await addDoc(collection(db,'empresas',S.eId,'rutas'),{...r,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-    }
-    showToast('Rutas de Altas Cumbres cargadas ✓','ok');
-    cargarRutas();
-  }
+function initGPS(){
+  if(mapInited)return;mapInited=true;
+  leafletMap=L.map('map',{center:[-34.5,-71.2],zoom:8});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'©OSM',maxZoom:19}).addTo(leafletMap);
+  L.circleMarker([-35.4264,-71.6554],{radius:7,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Talca</strong>');
+  L.circleMarker([-33.450,-70.668],{radius:7,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Santiago</strong>');
+  Object.entries(GPS_BUSES).forEach(([id,b])=>addBMark(id,b));
+  renderGPSList();
+  gpsInt=setInterval(()=>{simGPS();renderGPSList();},30000);
 }
 
-async function cargarBusesCompleto(){
-  const sn=await getDocs(query(collection(db,'empresas',S.eId,'buses'),orderBy('nombre','asc')));
-  buses=sn.docs.map(d=>({id:d.id,...d.data()}));
-  actualizarSels();
-  renderBusesList(buses);
-  verificarAlertasBuses();
+function busIcon(id,b){
+  const n=id.replace('MAQ ','');
+  const pulse=b.est==='en_ruta'?`<div style="position:absolute;top:-9px;left:-9px;width:46px;height:46px;border-radius:50%;border:2px solid ${b.col};animation:gp 2s infinite;opacity:.3;"></div>`:'';
+  return L.divIcon({html:`<style>@keyframes gp{0%,100%{transform:scale(1);opacity:.3}to{transform:scale(1.7);opacity:0}}</style><div style="position:relative;display:flex;flex-direction:column;align-items:center;">${pulse}<div style="width:30px;height:30px;border-radius:50%;background:${b.col};display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.9);font-weight:700;font-size:10px;font-family:'DM Mono',monospace;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.6);z-index:1;">${n}</div><div style="background:#131825;border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:1px 4px;font-size:8px;margin-top:2px;font-family:'DM Mono',monospace;color:#8891aa;">${b.vel>0?b.vel+' km/h':'Parado'}</div></div>`,className:'',iconSize:[30,46],iconAnchor:[15,15]});
 }
 
-function diasHasta(fecha){
-  if(!fecha) return null;
-  const v=fecha.toDate?fecha.toDate():new Date(fecha);
-  return Math.round((v-new Date())/(864e5));
+function addBMark(id,b){
+  if(lMarkers[id]){lMarkers[id].setLatLng([b.lat,b.lng]);lMarkers[id].setIcon(busIcon(id,b));}
+  else{const m=L.marker([b.lat,b.lng],{icon:busIcon(id,b)});m.addTo(leafletMap);m.on('click',()=>selBusGPS(id));lMarkers[id]=m;}
 }
 
-function estadoBus(b){
-  const fechas=[
-    {key:'revisionTecnica',label:'Rev. técnica'},
-    {key:'permisoCirculacion',label:'Perm. circulación'},
-    {key:'proximaMantencion',label:'Mantención'},
-    {key:'seguro',label:'Seguro'},
-  ];
-  let worst='ok';
-  for(const f of fechas){
-    if(!b[f.key]) continue;
-    const d=diasHasta(b[f.key]);
-    if(d<0){worst='vencido';break;}
-    if(d<=30&&worst!=='vencido') worst='proximo';
-  }
-  return worst;
+function simGPS(){
+  Object.entries(GPS_BUSES).forEach(([id,b])=>{
+    if(b.est==='en_ruta'){b.lat+=(id==='MAQ 770'?0.002:-0.002)+(Math.random()-.5)*.001;b.lng+=(Math.random()-.5)*.001;b.vel=Math.round(Math.max(75,Math.min(115,b.vel+(Math.random()-.5)*8)));b.km=Math.round(b.km+b.vel/120);addBMark(id,b);}
+  });
+  if(selBus)selBusGPS(selBus);
 }
 
-function renderBusesList(lista){
-  const el=document.getElementById('buses-list');if(!el)return;
-  if(!lista.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:12px;">Sin buses registrados. Agrega el primero o importa desde Excel.</div>';return;}
-  el.innerHTML=lista.map(b=>{
-    const est=estadoBus(b);
-    const estBadge=est==='vencido'?'<span class="badge b-danger">Vencido</span>':est==='proximo'?'<span class="badge b-warn">Por vencer</span>':'<span class="badge b-ok">Al día</span>';
-    const campos=[
-      {key:'revisionTecnica',label:'Rev. técnica'},
-      {key:'permisoCirculacion',label:'Perm. circ.'},
-      {key:'proximaMantencion',label:'Mantención'},
-      {key:'seguro',label:'Seguro'},
-    ];
-    const fechasHtml=campos.map(f=>{
-      if(!b[f.key]) return `<div><div class="exp-label">${f.label}</div><div class="exp-val" style="color:var(--text3);">—</div></div>`;
-      const d=diasHasta(b[f.key]);
-      const v=b[f.key].toDate?b[f.key].toDate():new Date(b[f.key]);
-      const col=d<0?'var(--red)':d<=30?'var(--amber)':'var(--green)';
-      const txt=d<0?`Vencida hace ${Math.abs(d)} días`:d<=30?`Vence en ${d} días`:`Vigente · ${d} días`;
-      return `<div><div class="exp-label">${f.label}</div><div class="exp-val" style="color:${col};font-size:11px;">${v.toLocaleDateString('es-CL')} · ${txt}</div></div>`;
-    }).join('');
-    return `<div class="person-row" id="br-${b.id}">
-      <div class="person-hdr" onclick="toggleBus('${b.id}')">
-        <div class="av av-blue" style="width:30px;height:30px;font-size:10px;font-weight:700;">${(b.nombre||'B').replace('Bus ','')}</div>
-        <div style="flex:1;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 80px;align-items:center;gap:10px;">
-          <div><div style="font-weight:600;font-size:12px;">${b.nombre||'—'}</div><div style="font-size:10px;color:var(--text3);">${b.patente||'Sin patente'}</div></div>
-          <div style="font-size:11px;color:var(--text2);">${b.marca||''} ${b.modelo||''}</div>
-          <div style="font-size:11px;color:var(--text3);">${b.año||b.anio||'—'} · ${b.km?b.km.toLocaleString('es-CL')+' km':'—'}</div>
-          <div style="font-size:11px;color:var(--text3);">${b.capacidad?b.capacidad+' pasajeros':'—'}</div>
-          <div>${estBadge}</div>
-          <button class="btn btn-sm" onclick="event.stopPropagation();editarBus('${b.id}')">Editar</button>
-        </div>
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3);flex-shrink:0;transition:transform .2s;" id="ba-${b.id}"><polyline points="2,4 6.5,8.5 11,4"/></svg>
+function renderGPSList(){
+  const lista=Object.entries(GPS_BUSES).filter(([,b])=>gpsFilter==='todos'||b.est===gpsFilter);
+  document.getElementById('gps-count').textContent=lista.length+' buses';
+  document.getElementById('gps-list').innerHTML=lista.map(([id,b])=>`
+    <div class="bi${selBus===id?' sel':''}" onclick="selBusGPS('${id}')">
+      <div class="bi-top">
+        <div class="bi-name"><div style="width:6px;height:6px;border-radius:50%;background:${b.col};"></div>${id}</div>
+        <span class="badge ${b.est==='en_ruta'?'b-ok':b.est==='parado'?'b-w':'b-g'}">${b.est==='en_ruta'?'En ruta':b.est==='parado'?'Parado':'Garaje'}</span>
       </div>
-      <div class="person-expand" id="be-${b.id}">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;">
-          ${fechasHtml}
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border);">
-          <div class="exp-sec"><div class="exp-label">Última pintura</div><div class="exp-val">${b.pintura?(b.pintura.toDate?b.pintura.toDate():new Date(b.pintura)).toLocaleDateString('es-CL'):'—'}</div></div>
-          <div class="exp-sec"><div class="exp-label">Observaciones</div><div class="exp-val" style="font-size:11px;">${b.obs||'—'}</div></div>
-        </div>
-        <div class="exp-actions">
-          <button class="btn btn-sm" onclick="editarBus('${b.id}')">Editar ficha</button>
-          <button class="btn btn-sm btn-danger" onclick="eliminarBus('${b.id}')">Eliminar</button>
-        </div>
-      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">${b.cond} · ${b.ruta}</div>
+      <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;">${b.vel} km/h · ${b.km} km</div>
+    </div>`).join('');
+}
+
+window.selBusGPS=function(id){
+  selBus=id;const b=GPS_BUSES[id];if(!b)return;
+  leafletMap.flyTo([b.lat,b.lng],12,{duration:1.2});lMarkers[id]?.openPopup();
+  const sc=b.est==='en_ruta'?'var(--green)':b.est==='parado'?'var(--amber)':'var(--text3)';
+  document.getElementById('gps-det').innerHTML=`
+    <div style="font-weight:600;font-size:13px;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${id}
+      <span class="badge ${b.est==='en_ruta'?'b-ok':b.est==='parado'?'b-w':'b-g'}">${b.est==='en_ruta'?'En ruta':b.est==='parado'?'Parado':'Garaje'}</span>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">${b.cond} · ${b.ruta}</div>
+    <div class="gps-stats">
+      <div><div class="gs-lbl">Velocidad</div><div class="gs-val" style="color:${b.vel>0?'var(--green)':'var(--text2)'}">${b.vel}<span style="font-size:10px;color:var(--text3);"> km/h</span></div></div>
+      <div><div class="gs-lbl">Km hoy</div><div class="gs-val">${b.km}<span style="font-size:10px;color:var(--text3);"> km</span></div></div>
+      <div><div class="gs-lbl">Coordenadas</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);margin-top:3px;">${b.lat.toFixed(4)}, ${b.lng.toFixed(4)}</div></div>
     </div>`;
-  }).join('');
-}
-
-window.toggleBus=function(id){
-  const r=document.getElementById('br-'+id),a=document.getElementById('ba-'+id);
-  const o=r.classList.contains('open');
-  document.querySelectorAll('.person-row').forEach(x=>x.classList.remove('open'));
-  document.querySelectorAll('[id^="ba-"]').forEach(x=>x.style.transform='');
-  if(!o){r.classList.add('open');a.style.transform='rotate(180deg)';}
+  document.getElementById('api-prev').innerHTML=`<span class="ak">"maq_id"</span>: <span class="av2">"${id}"</span>,\n<span class="ak">"lat"</span>: <span class="av2">${b.lat.toFixed(5)}</span>,\n<span class="ak">"lng"</span>: <span class="av2">${b.lng.toFixed(5)}</span>,\n<span class="ak">"speed"</span>: <span class="av2">${b.vel}</span>`;
+  renderGPSList();
 };
+window.setGF=function(f,btn){gpsFilter=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderGPSList();};
 
-window.filtrarBuses=function(term){
-  const t=term.toLowerCase();
-  const f=!t?buses:buses.filter(b=>(b.nombre||'').toLowerCase().includes(t)||(b.patente||'').toLowerCase().includes(t)||(b.marca||'').toLowerCase().includes(t));
-  renderBusesList(f);
-};
-
-let filtroEstBus='todos';
-window.filtrarEstadoBus=function(est){
-  filtroEstBus=est;
-  document.querySelectorAll('[id^="fb-"]').forEach(b=>{b.style.borderColor='';b.style.color='';});
-  const btn=document.getElementById('fb-'+est);
-  if(btn){btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
-  const f=est==='todos'?buses:buses.filter(b=>estadoBus(b)===est);
-  renderBusesList(f);
-};
-
-function verificarAlertasBuses(){
-  buses.forEach(async b=>{
-    const campos=[
-      {key:'revisionTecnica',tipo:'revision_tecnica'},
-      {key:'permisoCirculacion',tipo:'permiso_circulacion'},
-      {key:'proximaMantencion',tipo:'mantencion'},
-      {key:'seguro',tipo:'seguro'},
-    ];
-    for(const c of campos){
-      if(!b[c.key]) continue;
-      const d=diasHasta(b[c.key]);
-      if(d!==null&&d<=30){
-        const hoy=fechaHoy();
-        const lockKey=S.eId+'/alerta_bus/'+b.id+'/'+c.tipo+'/'+hoy;
-        try{
-          await addDoc(collection(db,'empresas',S.eId,'alertas'),{
-            busId:b.id,busNombre:b.nombre||b.patente||'Bus',
-            tipo:'bus_'+c.tipo,nivel:d<0?'critica':'preventiva',
-            mensaje:`${b.nombre||b.patente} · ${c.tipo.replace(/_/g,' ')} ${d<0?'vencida hace '+Math.abs(d)+' días':'vence en '+d+' días'}`,
-            conductorNombre:b.nombre||'',
-            resuelta:false,fecha:hoy,timestamp:serverTimestamp(),
-          });
-        }catch(e){}
-      }
-    }
-  });
-}
-
-window.openModalBus=function(id=null){
-  document.getElementById('bus-modal-title').textContent=id?'Editar bus':'Agregar bus';
-  ['bus-nombre','bus-patente','bus-marca','bus-modelo','bus-anio','bus-km','bus-cap','bus-rtec','bus-pcirc','bus-mant','bus-pintura','bus-seguro','bus-obs'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
-  document.getElementById('bus-id').value=id||'';
-  if(id){
-    const b=buses.find(x=>x.id===id);if(!b)return;
-    document.getElementById('bus-nombre').value=b.nombre||'';
-    document.getElementById('bus-patente').value=b.patente||'';
-    document.getElementById('bus-marca').value=b.marca||'';
-    document.getElementById('bus-modelo').value=b.modelo||'';
-    document.getElementById('bus-anio').value=b.año||b.anio||'';
-    document.getElementById('bus-km').value=b.km||'';
-    document.getElementById('bus-cap').value=b.capacidad||'';
-    document.getElementById('bus-obs').value=b.obs||'';
-    ['rtec:revisionTecnica','pcirc:permisoCirculacion','mant:proximaMantencion','pintura:pintura','seguro:seguro'].forEach(pair=>{
-      const[inputSuffix,field]=pair.split(':');
-      if(b[field]){const v=b[field].toDate?b[field].toDate():new Date(b[field]);const el=document.getElementById('bus-'+inputSuffix);if(el)el.value=v.toISOString().split('T')[0];}
-    });
-    actualizarHintsFechas();
-  }
-  document.getElementById('modal-bus').classList.add('open');
-};
-
-function actualizarHintsFechas(){
-  [['bus-rtec','bus-rtec-hint'],['bus-pcirc','bus-pcirc-hint'],['bus-mant','bus-mant-hint']].forEach(([inputId,hintId])=>{
-    const val=document.getElementById(inputId)?.value;
-    const hint=document.getElementById(hintId);
-    if(!hint||!val)return;
-    const d=Math.round((new Date(val)-new Date())/(864e5));
-    hint.style.color=d<0?'var(--red)':d<=30?'var(--amber)':'var(--green)';
-    hint.textContent=d<0?`Vencida hace ${Math.abs(d)} días`:d<=30?`Vence en ${d} días · Alerta activa`:`Vigente · ${d} días`;
-  });
-}
-document.addEventListener('change',e=>{if(['bus-rtec','bus-pcirc','bus-mant'].includes(e.target.id))actualizarHintsFechas();});
-
-window.editarBus=function(id){openModalBus(id);};
-window.closeModalBus=()=>document.getElementById('modal-bus').classList.remove('open');
-
-window.guardarBus=async function(){
-  const nombre=document.getElementById('bus-nombre').value.trim();
-  const patente=document.getElementById('bus-patente').value.trim();
-  if(!nombre){showToast('El nombre del bus es obligatorio','err');return;}
-  const d={
-    nombre,patente,
-    marca:document.getElementById('bus-marca').value.trim(),
-    modelo:document.getElementById('bus-modelo').value.trim(),
-    año:parseInt(document.getElementById('bus-anio').value)||0,
-    km:parseInt(document.getElementById('bus-km').value)||0,
-    capacidad:parseInt(document.getElementById('bus-cap').value)||0,
-    obs:document.getElementById('bus-obs').value.trim(),
-    updatedAt:serverTimestamp(),
-  };
-  ['rtec:revisionTecnica','pcirc:permisoCirculacion','mant:proximaMantencion','pintura:pintura','seguro:seguro'].forEach(pair=>{
-    const[suf,field]=pair.split(':');
-    const v=document.getElementById('bus-'+suf)?.value;
-    if(v) d[field]=new Date(v);
-  });
-  try{
-    const id=document.getElementById('bus-id').value;
-    if(id) await updateDoc(doc(db,'empresas',S.eId,'buses',id),d);
-    else{d.createdAt=serverTimestamp();await addDoc(collection(db,'empresas',S.eId,'buses'),d);}
-    closeModalBus();showToast('Bus guardado ✓','ok');
-    cargarBusesCompleto();
-  }catch(e){showToast('Error: '+e.message,'err');}
-};
-
-window.eliminarBus=async function(id){
-  if(!confirm('¿Eliminar este bus?'))return;
-  await deleteDoc(doc(db,'empresas',S.eId,'buses',id));
-  showToast('Bus eliminado','ok');cargarBusesCompleto();
-};
-
-window.importarBusesExcel=function(){document.getElementById('import-buses-file').click();};
-
-window.descargarPlantillaBuses=function(){
-  const cols=['nombre','patente','marca','modelo','año','km_actuales','capacidad_pasajeros','revision_tecnica','permiso_circulacion','prox_mantencion','seguro_hasta','obs'];
-  const ej=['Bus 03','ABCD·12','Mercedes Benz','O500',2019,45200,46,'2026-08-15','2026-03-31','2026-05-10','2026-12-31','Solo rutas largas'];
-  const ws=XLSX.utils.aoa_to_sheet([cols,ej]);
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Buses');
-  XLSX.writeFile(wb,'plantilla_buses.xlsx');
-  showToast('Plantilla descargada ✓','ok');
-};
-
-window.procesarImportBuses=async function(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    const wb=XLSX.read(e.target.result,{type:'binary'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    const data=XLSX.utils.sheet_to_json(ws,{defval:''});
-    if(!data.length){showToast('Archivo vacío','err');return;}
-    let ok=0,err=0;
-    showToast('Importando '+data.length+' buses…','');
-    for(const row of data){
-      const nombre=(row['nombre']||row['Nombre']||'').toString().trim();
-      if(!nombre){err++;continue;}
-      try{
-        const d={
-          nombre,
-          patente:(row['patente']||row['Patente']||'').toString().trim(),
-          marca:(row['marca']||row['Marca']||'').toString().trim(),
-          modelo:(row['modelo']||row['Modelo']||'').toString().trim(),
-          año:parseInt(row['año']||row['Año']||row['anio']||0)||0,
-          km:parseInt(row['km_actuales']||0)||0,
-          capacidad:parseInt(row['capacidad_pasajeros']||0)||0,
-          obs:(row['obs']||row['Obs']||'').toString().trim(),
-          createdAt:serverTimestamp(),updatedAt:serverTimestamp(),
-        };
-        const campos=[['revision_tecnica','revisionTecnica'],['permiso_circulacion','permisoCirculacion'],['prox_mantencion','proximaMantencion'],['seguro_hasta','seguro']];
-        campos.forEach(([col,field])=>{if(row[col])d[field]=new Date(row[col]);});
-        await addDoc(collection(db,'empresas',S.eId,'buses'),d);
-        ok++;
-      }catch(ex){err++;}
-    }
-    showToast(`${ok} buses importados ✓${err?' · '+err+' con errores':''}`, 'ok');
-    cargarBusesCompleto();
-  };
-  reader.readAsBinaryString(file);
-  input.value='';
-};
+// ── NAVEGACIÓN ─────────────────────────────────────────────
+const PAGE_NAMES={dashboard:'Dashboard',alertas:'Alertas',tarja:'Tarja del día',planificar:'Planificar viaje',historial:'Historial de viajes',calendario:'Calendario 9+3',rutas:'Rutas',conductores:'Conductores',auxiliares:'Auxiliares',maquinas:'Máquinas',gps:'GPS — Flota',importar:'Importar / Exportar'};
 
 window.go=function(name,navEl){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pg=document.getElementById('page-'+name);if(pg)pg.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   if(navEl)navEl.classList.add('active');
-  else document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')?.includes("'"+name+"'"))n.classList.add('active');});
-  document.getElementById('page-title').textContent=pNames[name]||name;
-  if(name==='gps'){initGPS();setTimeout(()=>leafletMap.invalidateSize(),100);}
+  else document.querySelectorAll('.ni').forEach(n=>{if(n.getAttribute('onclick')?.includes("'"+name+"'"))n.classList.add('active');});
+  document.getElementById('ptitle').textContent=PAGE_NAMES[name]||name;
+  if(name==='gps'){initGPS();setTimeout(()=>leafletMap?.invalidateSize(),100);}
   if(name==='rutas')cargarRutas();
-  if(name==='planificacion')cargarViajesHoy();
-  if(name==='buses')cargarBusesCompleto();
+  if(name==='tarja'){document.getElementById('tarja-fecha').value=fechaHoy();cargarTarjaFecha();}
+  if(name==='planificar'){document.getElementById('pf-fecha').value=fechaHoy();actualizarSels();cargarViajesHoy();}
+  if(name==='calendario')renderCalendario();
+  if(name==='maquinas')renderMaquinasList(maquinas);
 };
+
+// ── MODAL HELPERS ──────────────────────────────────────────
+function openM(id){document.getElementById(id).classList.add('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+window.openM=openM;window.closeM=closeM;
+// Cerrar modal haciendo clic fuera
+document.querySelectorAll('.mov').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 </script>
 </body>
 </html>
