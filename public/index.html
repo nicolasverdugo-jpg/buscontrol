@@ -221,7 +221,7 @@ select:focus,input:focus{border-color:var(--accent);}
 .bi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
 .bi-name{font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;}
 .gps-map-wrap{flex:1;display:flex;flex-direction:column;}
-#map{flex:1;}
+#map{flex:1;min-height:300px;}
 .gps-det{height:120px;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;}
 .gps-det-main{flex:1;padding:11px 14px;border-right:1px solid var(--border);}
 .gps-stats{display:flex;gap:16px;margin-top:6px;}
@@ -554,7 +554,7 @@ select:focus,input:focus{border-color:var(--accent);}
     </div>
 
     <!-- GPS -->
-    <div id="page-gps" class="page" style="padding:0;margin:-14px -18px;overflow:hidden;">
+    <div id="page-gps" class="page" style="padding:0;margin:-14px -18px;overflow:hidden;height:calc(100vh - 52px);">
       <div class="gps-layout">
         <div class="gps-panel">
           <div class="gps-ph"><div class="gps-pt">Flota activa</div><div style="font-size:11px;color:var(--text2);" id="gps-count">— buses</div></div>
@@ -1690,7 +1690,8 @@ const GPS_BUSES={
 let lMarkers={};
 
 function initGPS(){
-  if(mapInited)return;mapInited=true;
+  if(mapInited){leafletMap?.invalidateSize();return;}
+  mapInited=true;
   leafletMap=L.map('map',{center:[-34.5,-71.2],zoom:8});
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'©OSM',maxZoom:19}).addTo(leafletMap);
   L.circleMarker([-35.4264,-71.6554],{radius:7,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Talca</strong>');
@@ -1761,7 +1762,12 @@ window.go=function(name,navEl){
   if(navEl)navEl.classList.add('active');
   else document.querySelectorAll('.ni').forEach(n=>{if(n.getAttribute('onclick')?.includes("'"+name+"'"))n.classList.add('active');});
   document.getElementById('ptitle').textContent=PAGE_NAMES[name]||name;
-  if(name==='gps'){initGPS();setTimeout(()=>leafletMap?.invalidateSize(),100);}
+  if(name==='gps'){
+    setTimeout(()=>{
+      initGPS();
+      setTimeout(()=>{leafletMap?.invalidateSize();},200);
+    },50);
+  }
   if(name==='rutas')cargarRutas();
   if(name==='tarja'){document.getElementById('tarja-fecha').value=fechaHoy();cargarTarjaFecha();}
   if(name==='planificar'){document.getElementById('pf-fecha').value=fechaHoy();actualizarSels();cargarViajesHoy();}
