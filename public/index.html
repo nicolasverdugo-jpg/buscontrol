@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BusControl — Altas Cumbres</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+<meta name="description" content="Sistema operativo de gestión de buses">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -207,7 +209,7 @@ select:focus,input:focus{border-color:var(--accent);}
 .cc-empty{background:transparent;color:var(--text3);}
 
 /* ── GPS ── */
-.gps-layout{display:flex;height:calc(100vh - 52px);overflow:hidden;}
+.gps-layout{display:flex;height:calc(100vh - 52px);overflow:hidden;width:100%;}
 .gps-panel{width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
 .gps-ph{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .gps-pt{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;}
@@ -220,8 +222,8 @@ select:focus,input:focus{border-color:var(--accent);}
 .bi.sel{background:var(--blue-bg);border-left-color:var(--accent);}
 .bi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
 .bi-name{font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;}
-.gps-map-wrap{flex:1;display:flex;flex-direction:column;}
-#map{flex:1;min-height:300px;}
+.gps-map-wrap{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+#map{flex:1;min-height:400px;width:100%;display:block;}
 .gps-det{height:120px;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;}
 .gps-det-main{flex:1;padding:11px 14px;border-right:1px solid var(--border);}
 .gps-stats{display:flex;gap:16px;margin-top:6px;}
@@ -772,7 +774,8 @@ window.doLogin=async function(){
   const btn=document.getElementById('lbtn'),err=document.getElementById('lerr');
   err.style.display='none';btn.disabled=true;btn.textContent='Ingresando…';
   try{await signInWithEmailAndPassword(auth,email,pass);}
-  catch(e){err.style.display='block';err.textContent=e.code==='auth/invalid-credential'?'Correo o contraseña incorrectos':e.message;btn.disabled=false;btn.textContent='Ingresar';}
+  catch(e){err.style.display='block';const msgs={'auth/invalid-credential':'Correo o contraseña incorrectos','auth/user-not-found':'Usuario no encontrado','auth/wrong-password':'Contraseña incorrecta','auth/too-many-requests':'Demasiados intentos. Espera unos minutos.'};
+    err.textContent=msgs[e.code]||'Error al ingresar. Verifica tus datos.';btn.disabled=false;btn.textContent='Ingresar';}
 };
 
 window.doLogout=async function(){
@@ -805,6 +808,7 @@ onAuthStateChanged(auth,async user=>{
     // Init fechas
     const hoy=fechaHoy();
     document.getElementById('pf-fecha').value=hoy;
+    document.getElementById('pf-fecha').addEventListener('change',()=>{actualizarSels();cargarViajesHoy();});
     document.getElementById('tarja-fecha').value=hoy;
     const ini1=new Date();ini1.setDate(1);
     document.getElementById('hist-desde').value=ini1.toISOString().split('T')[0];
@@ -846,8 +850,7 @@ function iniciarApp(){
     actualizarSels();renderMaquinasList(maquinas);
     document.getElementById('maq-count').textContent='— '+maquinas.length+' registradas';
   }));
-  cargarRutas();cargarViajesHoy();
-  inicializarDatosDefault();
+  cargarRutas();cargarViajesHoy();setTimeout(inicializarDatosDefault,2000);
   updateClock();setInterval(updateClock,30000);
 }
 
@@ -970,7 +973,8 @@ async function cargarRutas(){
   renderRutasList();actualizarSels();
   // Poblar filtro calendario
   const sel=document.getElementById('cal-filtro-ruta');
-  sel.innerHTML='<option value="">Todas las rutas</option>'+[...new Set(conductores.map(c=>c.ruta).filter(Boolean))].map(r=>`<option>${r}</option>`).join('');
+  const rutasUnicas=[...new Set(conductores.map(c=>c.ruta).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todas las rutas</option>'+rutasUnicas.map(r=>`<option value="${r}">${r}</option>`).join('');
 }
 
 function renderRutasList(){
@@ -1135,6 +1139,7 @@ window.guardarViaje=async function(){
       estado:'planificado',createdAt:serverTimestamp(),
     });
     showToast('Viaje guardado ✓','ok');limpiarPlanif();cargarViajesHoy();
+    calViajesCache={mes:'',data:[]};// invalidar cache calendario
     if(fecha===fechaHoy()) cargarTarjaFecha();
   }catch(e){showToast('Error: '+e.message,'err');}
 };
@@ -1274,6 +1279,9 @@ window.exportarViajes=function(){
 // ── CALENDARIO 9+3 ─────────────────────────────────────────
 window.cambiarMesCal=function(dir){calMes=new Date(calMes.getFullYear(),calMes.getMonth()+dir,1);renderCalendario();};
 
+// Cache de viajes del mes para el calendario
+let calViajesCache={mes:'',data:[]};
+
 async function renderCalendario(){
   const ano=calMes.getFullYear(),mes=calMes.getMonth();
   const diasEnMes=new Date(ano,mes+1,0).getDate();
@@ -1281,14 +1289,20 @@ async function renderCalendario(){
   document.getElementById('cal-mes-lbl').textContent=calMes.toLocaleDateString('es-CL',{month:'long',year:'numeric'});
   const filtroRuta=document.getElementById('cal-filtro-ruta')?.value||'';
   let lista=filtroRuta?conductores.filter(c=>c.ruta===filtroRuta):conductores;
-  // Obtener viajes del mes para saber quién está asignado
+  // Obtener viajes del mes — usa cache si es el mismo mes
+  const mesKey=`${ano}-${mes}`;
   const desde=`${ano}-${String(mes+1).padStart(2,'0')}-01`;
   const hasta=`${ano}-${String(mes+1).padStart(2,'0')}-${String(diasEnMes).padStart(2,'0')}`;
   let viajesMes=[];
-  try{
-    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','>=',desde),where('fecha','<=',hasta)));
-    viajesMes=sn.docs.map(d=>d.data());
-  }catch(e){}
+  if(calViajesCache.mes===mesKey){
+    viajesMes=calViajesCache.data;
+  } else {
+    try{
+      const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','>=',desde),where('fecha','<=',hasta)));
+      viajesMes=sn.docs.map(d=>d.data());
+      calViajesCache={mes:mesKey,data:viajesMes};
+    }catch(e){}
+  }
   // Mapear viajes por fecha+conductor
   const viajeMap={};
   viajesMes.forEach(v=>{const k=`${v.fecha}|${v.conductorId}`;viajeMap[k]=v;});
@@ -1690,15 +1704,28 @@ const GPS_BUSES={
 let lMarkers={};
 
 function initGPS(){
-  if(mapInited){leafletMap?.invalidateSize();return;}
+  const mapEl=document.getElementById('map');
+  if(!mapEl){console.warn('Map element not found');return;}
+  if(mapInited){
+    setTimeout(()=>leafletMap?.invalidateSize(),100);
+    return;
+  }
+  // Asegurar que el elemento tiene dimensiones antes de inicializar
+  if(mapEl.offsetHeight<10){
+    setTimeout(initGPS,150);
+    return;
+  }
   mapInited=true;
-  leafletMap=L.map('map',{center:[-34.5,-71.2],zoom:8});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'©OSM',maxZoom:19}).addTo(leafletMap);
+  try{
+    leafletMap=L.map('map',{center:[-34.5,-71.2],zoom:8});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'©OSM',maxZoom:19}).addTo(leafletMap);
   L.circleMarker([-35.4264,-71.6554],{radius:7,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Talca</strong>');
   L.circleMarker([-33.450,-70.668],{radius:7,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Santiago</strong>');
   Object.entries(GPS_BUSES).forEach(([id,b])=>addBMark(id,b));
   renderGPSList();
   gpsInt=setInterval(()=>{simGPS();renderGPSList();},30000);
+  setTimeout(()=>leafletMap?.invalidateSize(),400);
+  }catch(err){console.warn('GPS error:',err);mapInited=false;}
 }
 
 function busIcon(id,b){
@@ -1763,10 +1790,15 @@ window.go=function(name,navEl){
   else document.querySelectorAll('.ni').forEach(n=>{if(n.getAttribute('onclick')?.includes("'"+name+"'"))n.classList.add('active');});
   document.getElementById('ptitle').textContent=PAGE_NAMES[name]||name;
   if(name==='gps'){
-    setTimeout(()=>{
-      initGPS();
-      setTimeout(()=>{leafletMap?.invalidateSize();},200);
-    },50);
+    // Esperar a que el DOM renderice la página GPS antes de inicializar el mapa
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        setTimeout(()=>{
+          initGPS();
+          setTimeout(()=>leafletMap?.invalidateSize(),300);
+        },100);
+      });
+    });
   }
   if(name==='rutas')cargarRutas();
   if(name==='tarja'){document.getElementById('tarja-fecha').value=fechaHoy();cargarTarjaFecha();}
