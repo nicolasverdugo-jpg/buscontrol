@@ -712,6 +712,7 @@ select:focus,input:focus{border-color:var(--accent);}
 
 <div class="toast" id="toast"></div>
 <script type="module">
+
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import{getFirestore,enableIndexedDbPersistence,collection,doc,getDoc,getDocs,addDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp,limit,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -1083,8 +1084,8 @@ window.verificarJornada=async function(){
 // ── VIAJES ─────────────────────────────────────────────────
 async function cargarViajesHoy(){
   try{
-    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fechaHoy()),orderBy('horaSalida','asc')));
-    viajesHoy=sn.docs.map(d=>({id:d.id,...d.data()}));
+    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fechaHoy())));
+    viajesHoy=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.horaSalida||'').localeCompare(b.horaSalida||''));
     document.getElementById('m-viajes').textContent=viajesHoy.length;
     renderTarjaContent(viajesHoy,document.getElementById('dash-tarja'),true);
     const pfv=document.getElementById('planif-viajes');
@@ -1225,7 +1226,7 @@ window.cargarTarjaFecha=async function(){
   if(!fecha)return;
   document.getElementById('tarja-fecha-lbl').textContent=fmtFecha(fecha);
   try{
-    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fecha),orderBy('horaSalida','asc')));
+    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fecha)));
     const viajes=sn.docs.map(d=>({id:d.id,...d.data()}));
     renderTarjaContent(viajes,document.getElementById('tarja-content'));
   }catch(e){showToast('Error: '+e.message,'err');}
@@ -1244,7 +1245,7 @@ window.buscarHistorial=async function(){
   const hasta=document.getElementById('hist-hasta').value;
   if(!desde||!hasta){showToast('Selecciona rango de fechas','err');return;}
   try{
-    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','>=',desde),where('fecha','<=',hasta),orderBy('fecha','desc'),orderBy('horaSalida','desc')));
+    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','>=',desde),where('fecha','<=',hasta),orderBy('fecha','desc')));
     const viajes=sn.docs.map(d=>({id:d.id,...d.data()}));
     const el=document.getElementById('hist-list');
     if(!viajes.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Sin viajes en ese período</div>';return;}
@@ -1617,9 +1618,8 @@ window.procesarImportMaq=async function(inp){
   };reader.readAsBinaryString(file);
 };
 
-</script>
 
-<script type="module">// ── ALERTAS ────────────────────────────────────────────────
+// ── ALERTAS ────────────────────────────────────────────────
 function renderAlertas(){
   ['dash-alerts','all-alerts'].forEach(elId=>{
     const el=document.getElementById(elId);if(!el)return;
@@ -1813,6 +1813,8 @@ function closeM(id){document.getElementById(id).classList.remove('open');}
 window.openM=openM;window.closeM=closeM;
 // Cerrar modal haciendo clic fuera
 document.querySelectorAll('.mov').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
 </script>
+
 </body>
 </html>
