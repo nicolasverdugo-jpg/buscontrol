@@ -568,7 +568,7 @@ select:focus,input:focus{border-color:var(--accent);}
           <div class="bus-list" id="gps-list"></div>
         </div>
         <div class="gps-map-wrap">
-          <div id="map"></div>
+          <div id="map" style="height:calc(100vh - 220px);min-height:400px;width:100%;background:#0c0f18;"></div>
           <div class="gps-det">
             <div class="gps-det-main" id="gps-det"><div style="color:var(--text3);font-size:12px;padding-top:16px;">Selecciona un bus</div></div>
             <div class="api-pan"><div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">JSON GPS</div><div class="api-blk" id="api-prev"><span style="color:var(--text3)">// sin selección</span></div></div>
@@ -1704,28 +1704,36 @@ const GPS_BUSES={
 let lMarkers={};
 
 function initGPS(){
+  if(mapInited){leafletMap?.invalidateSize();return;}
+  // Verificar que Leaflet esté disponible
+  if(typeof L === 'undefined'){
+    showToast('Cargando mapa…','');
+    setTimeout(initGPS, 500);
+    return;
+  }
   const mapEl=document.getElementById('map');
-  if(!mapEl){console.warn('Map element not found');return;}
-  if(mapInited){
-    setTimeout(()=>leafletMap?.invalidateSize(),100);
-    return;
-  }
-  // Asegurar que el elemento tiene dimensiones antes de inicializar
-  if(mapEl.offsetHeight<10){
-    setTimeout(initGPS,150);
-    return;
-  }
+  if(!mapEl) return;
+  // Forzar dimensiones al contenedor
+  mapEl.style.height='calc(100vh - 220px)';
+  mapEl.style.minHeight='400px';
+  mapEl.style.width='100%';
   mapInited=true;
-  try{
-    leafletMap=L.map('map',{center:[-34.5,-71.2],zoom:8});
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'©OSM',maxZoom:19}).addTo(leafletMap);
-  L.circleMarker([-35.4264,-71.6554],{radius:7,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Talca</strong>');
-  L.circleMarker([-33.450,-70.668],{radius:7,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9}).addTo(leafletMap).bindPopup('<strong>Terminal Santiago</strong>');
+  leafletMap=L.map('map',{center:[-34.5,-71.2],zoom:8,zoomControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',
+    maxZoom:19,
+    crossOrigin:true
+  }).addTo(leafletMap);
+  L.circleMarker([-35.4264,-71.6554],{radius:8,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9})
+    .addTo(leafletMap).bindPopup('<strong>Terminal Talca</strong>');
+  L.circleMarker([-33.450,-70.668],{radius:8,color:'#2f72ff',fillColor:'#2f72ff',fillOpacity:.9})
+    .addTo(leafletMap).bindPopup('<strong>Terminal Santiago</strong>');
   Object.entries(GPS_BUSES).forEach(([id,b])=>addBMark(id,b));
   renderGPSList();
   gpsInt=setInterval(()=>{simGPS();renderGPSList();},30000);
-  setTimeout(()=>leafletMap?.invalidateSize(),400);
-  }catch(err){console.warn('GPS error:',err);mapInited=false;}
+  // Forzar redibujado del mapa
+  setTimeout(()=>{leafletMap.invalidateSize();leafletMap.setView([-34.5,-71.2],8);},200);
+  setTimeout(()=>leafletMap.invalidateSize(),600);
 }
 
 function busIcon(id,b){
@@ -1790,15 +1798,7 @@ window.go=function(name,navEl){
   else document.querySelectorAll('.ni').forEach(n=>{if(n.getAttribute('onclick')?.includes("'"+name+"'"))n.classList.add('active');});
   document.getElementById('ptitle').textContent=PAGE_NAMES[name]||name;
   if(name==='gps'){
-    // Esperar a que el DOM renderice la página GPS antes de inicializar el mapa
-    requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        setTimeout(()=>{
-          initGPS();
-          setTimeout(()=>leafletMap?.invalidateSize(),300);
-        },100);
-      });
-    });
+    setTimeout(initGPS, 200);
   }
   if(name==='rutas')cargarRutas();
   if(name==='tarja'){document.getElementById('tarja-fecha').value=fechaHoy();cargarTarjaFecha();}
