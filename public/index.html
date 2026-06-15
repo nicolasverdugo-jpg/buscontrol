@@ -851,121 +851,13 @@ function iniciarApp(){
     actualizarSels();renderMaquinasList(maquinas);
     document.getElementById('maq-count').textContent='— '+maquinas.length+' registradas';
   }));
-  cargarRutas();cargarViajesHoy();setTimeout(inicializarDatosDefault,2000);
+  cargarRutas();cargarViajesHoy();
   updateClock();setInterval(updateClock,30000);
 }
 
-// ── DATOS DEFAULT (rutas + conductores reales) ─────────────
-const RUTAS_DEFAULT=[
-  {nombre:'Constitución Cama',duracionH:3,origen:'Talca',destino:'Constitución',horarios:'05:10, 06:10, 07:10, 08:10, 10:10, 11:10',obs:'Bus cama · servicio nocturno'},
-  {nombre:'Constitución',duracionH:3,origen:'Talca',destino:'Constitución',horarios:'09:10, 12:00, 15:00',obs:''},
-  {nombre:'Linares',duracionH:1.5,origen:'Talca',destino:'Linares',horarios:'07:30, 08:30, 10:40, 12:00',obs:''},
-  {nombre:'Parral',duracionH:3,origen:'Talca',destino:'Parral',horarios:'05:40, 07:50, 08:50, 09:40, 11:50, 12:50',obs:''},
-  {nombre:'Curicó',duracionH:1.5,origen:'Talca',destino:'Curicó',horarios:'07:00, 09:00, 12:00, 15:00',obs:''},
-];
-
-const CONDUCTORES_DEFAULT=[
-  {nombre:'Juan Aravena',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Celin Ibarra',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Cesar Garrido',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Hector Pezoa',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Eduardo Gonzalez',ruta:'Constitución',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Jose Rojas',ruta:'Guardia',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Jesus Espinoza',ruta:'Linares',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Marcelino Guzman',ruta:'Linares',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Juan Martinez',ruta:'Linares',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Julio Rojas',ruta:'Parral',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Sebastian Yañez',ruta:'Parral',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Higinio Retamal',ruta:'Parral',cicloOffset:11,estadoHoy:'disponible'},
-  {nombre:'Edmundo Valenzuela',ruta:'Constitución',cicloOffset:0,estadoHoy:'disponible'},
-  {nombre:'Wenceslao Muñoz',ruta:'Constitución',cicloOffset:5,estadoHoy:'disponible'},
-  {nombre:'Nelson Vasquez',ruta:'Constitución',cicloOffset:3,estadoHoy:'disponible'},
-  {nombre:'Raul Castro',ruta:'Constitución',cicloOffset:0,estadoHoy:'disponible'},
-  {nombre:'Pablo Ahumada',ruta:'Parral',cicloOffset:2,estadoHoy:'disponible'},
-  {nombre:'Manuel Leiva',ruta:'Linares',cicloOffset:0,estadoHoy:'disponible'},
-  {nombre:'J. Manuel Guerra',ruta:'Linares',cicloOffset:0,estadoHoy:'disponible'},
-  {nombre:'Miguel Galaz',ruta:'Constitución',cicloOffset:1,estadoHoy:'disponible'},
-];
-
-const AUXILIARES_DEFAULT=[
-  {nombre:'Rodrigo Soto',ruta:'Constitución',cicloOffset:0},
-  {nombre:'Esteban Castillo',ruta:'Constitución',cicloOffset:3},
-  {nombre:'Bastian Marquez',ruta:'Constitución',cicloOffset:5},
-  {nombre:'Juan Muñoz',ruta:'Constitución',cicloOffset:0},
-  {nombre:'Jonatan Villalobos',ruta:'Parral',cicloOffset:2},
-  {nombre:'J. Ignacio Rodriguez',ruta:'Linares',cicloOffset:0},
-  {nombre:'Jose Muñoz',ruta:'Linares',cicloOffset:0},
-  {nombre:'Maximiliano Mendoza',ruta:'Constitución',cicloOffset:1},
-  {nombre:'Isaias Sandoval',ruta:'Linares',cicloOffset:0},
-  {nombre:'Ricardo Villarroel',ruta:'Constitución',cicloOffset:5},
-];
-
-const MAQUINAS_DEFAULT=[
-  {numero:710,conductorHabitual:'Jose Rojas',asistenteHabitual:'Eduardo Muñoz',estado:'disponible'},
-  {numero:720,conductorHabitual:'Sergio Castillo',asistenteHabitual:'Cristian Molina',estado:'disponible'},
-  {numero:730,conductorHabitual:'Pablo Ahumada',asistenteHabitual:'Jhony Gonzalez',estado:'disponible'},
-  {numero:770,conductorHabitual:'',asistenteHabitual:'',estado:'disponible'},
-  {numero:780,conductorHabitual:'Julio Rojas',asistenteHabitual:'Raul Maraboli',estado:'disponible'},
-  {numero:820,conductorHabitual:'J. Manuel Guerra',asistenteHabitual:'Gabriel Soto',estado:'disponible'},
-  {numero:850,conductorHabitual:'Fabian Castro',asistenteHabitual:'Victor Eyzaguirre',estado:'disponible'},
-  {numero:860,conductorHabitual:'Juan Martinez',asistenteHabitual:'Francisco Martinez',estado:'disponible'},
-  {numero:930,conductorHabitual:'Jose Inostroza',asistenteHabitual:'Bastian Bustos',estado:'disponible'},
-  {numero:1100,conductorHabitual:'Marcelino Guzman',asistenteHabitual:'Carlos Yañez',estado:'disponible'},
-  {numero:1110,conductorHabitual:'Higinio Retamal',asistenteHabitual:'Matias Sepulveda',estado:'disponible'},
-  {numero:1130,conductorHabitual:'Celin Ibarra',asistenteHabitual:'Ricardo Villarroel',estado:'disponible'},
-  {numero:1140,conductorHabitual:'Raul Castro',asistenteHabitual:'Juan Muñoz',estado:'disponible'},
-  {numero:1150,conductorHabitual:'Juan Ramirez',asistenteHabitual:'Jose Jara',estado:'disponible'},
-  {numero:1180,conductorHabitual:'Juan Aravena',asistenteHabitual:'Tomas Farias',estado:'disponible'},
-  {numero:1230,conductorHabitual:'Felipe Fuentes',asistenteHabitual:'Isaias Sandoval',estado:'disponible'},
-  {numero:1260,conductorHabitual:'Manuel Leiva',asistenteHabitual:'J. Ignacio Rodriguez',estado:'disponible'},
-  {numero:1300,conductorHabitual:'Edmundo Valenzuela',asistenteHabitual:'Rodrigo Soto',estado:'disponible'},
-  {numero:1330,conductorHabitual:'Wenceslao Muñoz',asistenteHabitual:'Bastian Marquez',estado:'disponible'},
-  {numero:1340,conductorHabitual:'Erik Zenteno',asistenteHabitual:'Manuel Muñoz',estado:'disponible'},
-  {numero:1350,conductorHabitual:'Omar Figueroa',asistenteHabitual:'Patricio Sandoval',estado:'disponible'},
-  {numero:1380,conductorHabitual:'Gustavo Muñoz',asistenteHabitual:'Pablo Villalobos',estado:'disponible'},
-  {numero:1400,conductorHabitual:'Manuel Araya',asistenteHabitual:'Brandon Mendez',estado:'disponible'},
-  {numero:1410,conductorHabitual:'German Figueroa',asistenteHabitual:'Benjamin Torres',estado:'disponible'},
-  {numero:1510,conductorHabitual:'Francisco Huerta',asistenteHabitual:'Matias Morales',estado:'disponible'},
-  {numero:1520,conductorHabitual:'Juan Farias',asistenteHabitual:'Sebastian Gonzalez',estado:'disponible'},
-  {numero:1530,conductorHabitual:'Alvaro Diaz',asistenteHabitual:'Francisco Gutierrez',estado:'disponible'},
-  {numero:1540,conductorHabitual:'Jorge Santelices',asistenteHabitual:'Cristobal Orellana',estado:'disponible'},
-  {numero:1600,conductorHabitual:'Jose Valdes',asistenteHabitual:'Javier Rioseco',estado:'disponible'},
-  {numero:1610,conductorHabitual:'Nelson Vasquez',asistenteHabitual:'Esteban Castillo',estado:'disponible'},
-];
-
-async function inicializarDatosDefault(){
-  // Rutas
-  const rsn=await getDocs(collection(db,'empresas',S.eId,'rutas'));
-  if(rsn.empty){
-    for(const r of RUTAS_DEFAULT){
-      await addDoc(collection(db,'empresas',S.eId,'rutas'),{...r,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-    }
-    showToast('Rutas de Altas Cumbres cargadas ✓','ok');
-  }
-  // Conductores
-  const csn=await getDocs(collection(db,'empresas',S.eId,'conductores'));
-  if(csn.empty){
-    for(const c of CONDUCTORES_DEFAULT){
-      await addDoc(collection(db,'empresas',S.eId,'conductores'),{...c,telefono:'',email:'',rut:'',createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-    }
-    showToast('Conductores de ejemplo cargados ✓','ok');
-  }
-  // Auxiliares
-  const asn=await getDocs(collection(db,'empresas',S.eId,'auxiliares'));
-  if(asn.empty){
-    for(const a of AUXILIARES_DEFAULT){
-      await addDoc(collection(db,'empresas',S.eId,'auxiliares'),{...a,telefono:'',email:'',rut:'',createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-    }
-  }
-  // Maquinas
-  const msn=await getDocs(collection(db,'empresas',S.eId,'maquinas'));
-  if(msn.empty){
-    for(const m of MAQUINAS_DEFAULT){
-      await addDoc(collection(db,'empresas',S.eId,'maquinas'),{...m,nombre:'MAQ '+m.numero,patente:'',marca:'',modelo:'',año:0,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-    }
-    showToast('30 máquinas de ejemplo cargadas ✓','ok');
-  }
-}
+// ── (Datos de ejemplo eliminados) ──────────────────────────
+// Cada empresa carga sus propios conductores, auxiliares, máquinas y rutas
+// desde la sección "Importar / Exportar" o agregándolos manualmente.
 
 // ── RUTAS ──────────────────────────────────────────────────
 async function cargarRutas(){
@@ -1057,10 +949,14 @@ window.verificarJornada=async function(){
     let horasAcum=0;
     sn.docs.forEach(d=>{
       const v=d.data();
-      if(v.horaSalida&&v.horaLlegada){
-        const [sh,sm]=v.horaSalida.split(':').map(Number);
-        const [lh,lm]=v.horaLlegada.split(':').map(Number);
-        horasAcum+=(lh*60+lm-sh*60-sm)/60;
+      const sal=v.horaSalidaReal||v.horaSalida;
+      const lleg=v.horaLlegadaReal||v.horaLlegada;
+      if(sal&&lleg){
+        const [sh,sm]=sal.split(':').map(Number);
+        const [lh,lm]=lleg.split(':').map(Number);
+        let mins=(lh*60+lm)-(sh*60+sm);
+        if(mins<0)mins+=24*60;
+        horasAcum+=mins/60;
       }
     });
     // Calcular descanso requerido (40% del tiempo conducido)
@@ -1110,7 +1006,18 @@ window.guardarViaje=async function(){
   // Verificar jornada - bloquear si >5h
   const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',fecha),where('conductorId','==',condId)));
   let horasAcum=0;
-  sn.docs.forEach(d=>{const v=d.data();if(v.horaSalida&&v.horaLlegada){const[sh,sm]=v.horaSalida.split(':').map(Number);const[lh,lm]=v.horaLlegada.split(':').map(Number);horasAcum+=(lh*60+lm-sh*60-sm)/60;}});
+  sn.docs.forEach(d=>{
+    const v=d.data();
+    const sal=v.horaSalidaReal||v.horaSalida;
+    const lleg=v.horaLlegadaReal||v.horaLlegada;
+    if(sal&&lleg){
+      const[sh,sm]=sal.split(':').map(Number);
+      const[lh,lm]=lleg.split(':').map(Number);
+      let mins=(lh*60+lm)-(sh*60+sm);
+      if(mins<0)mins+=24*60;
+      horasAcum+=mins/60;
+    }
+  });
   const horaSal=document.getElementById('pf-sal').value;
   const horaLleg=document.getElementById('pf-lleg').value;
   let horasNuevo=0;
@@ -1151,6 +1058,57 @@ window.eliminarViaje=async function(id){
   showToast('Eliminado','ok');cargarViajesHoy();cargarTarjaFecha();
 };
 
+window.iniciarViaje=async function(id){
+  const ahora=new Date();
+  const hhmm=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  try{
+    await updateDoc(doc(db,'empresas',S.eId,'viajes',id),{estado:'en_curso',horaSalidaReal:hhmm,inicioAt:serverTimestamp()});
+    showToast('Viaje iniciado ✓ — '+hhmm,'ok');
+    cargarViajesHoy();cargarTarjaFecha();
+  }catch(e){showToast('Error: '+e.message,'err');}
+};
+
+window.finalizarViaje=async function(id){
+  const ahora=new Date();
+  const hhmm=ahora.getHours().toString().padStart(2,'0')+':'+ahora.getMinutes().toString().padStart(2,'0');
+  try{
+    const ref=doc(db,'empresas',S.eId,'viajes',id);
+    const snap=await getDoc(ref);
+    if(!snap.exists())return;
+    const v=snap.data();
+    const horaInicio=v.horaSalidaReal||v.horaSalida;
+    let duracionMin=0;
+    if(horaInicio){
+      const[ih,im]=horaInicio.split(':').map(Number);
+      const[fh,fm]=hhmm.split(':').map(Number);
+      duracionMin=(fh*60+fm)-(ih*60+im);
+      if(duracionMin<0)duracionMin+=24*60;
+    }
+    const descansoReqMin=Math.round(duracionMin*0.4);
+    let descMin=(ahora.getHours()*60+ahora.getMinutes())+descansoReqMin;
+    descMin=descMin%(24*60);
+    const descansoHasta=String(Math.floor(descMin/60)).padStart(2,'0')+':'+String(descMin%60).padStart(2,'0');
+    await updateDoc(ref,{estado:'finalizado',horaLlegadaReal:hhmm,finAt:serverTimestamp(),duracionRealMin:duracionMin,descansoReqMin,descansoHasta});
+    showToast(`Viaje finalizado ✓ — descanso: ${descansoReqMin} min (hasta ${descansoHasta})`,'ok');
+    await verificarConflictosDescanso({...v,id},descansoHasta);
+    cargarViajesHoy();cargarTarjaFecha();
+  }catch(e){showToast('Error: '+e.message,'err');}
+};
+
+async function verificarConflictosDescanso(viaje,descansoHasta){
+  try{
+    const sn=await getDocs(query(collection(db,'empresas',S.eId,'viajes'),where('fecha','==',viaje.fecha),where('conductorId','==',viaje.conductorId)));
+    const conflictos=sn.docs.map(d=>({id:d.id,...d.data()})).filter(v2=>v2.id!==viaje.id&&v2.estado!=='finalizado'&&v2.horaSalida&&v2.horaSalida<descansoHasta);
+    for(const c of conflictos){
+      await addDoc(collection(db,'empresas',S.eId,'alertas'),{
+        tipo:'descanso',nivel:'critica',
+        mensaje:`${viaje.conductorNombre} no cumple descanso mínimo (hasta ${descansoHasta}) antes del viaje ${c.rutaNombre} de las ${c.horaSalida}`,
+        conductorNombre:viaje.conductorNombre,resuelta:false,timestamp:serverTimestamp(),
+      });
+    }
+  }catch(e){}
+}
+
 // ── TARJA ──────────────────────────────────────────────────
 const RUTA_COLORES={
   'Constitución Cama':'#2f72ff',
@@ -1179,8 +1137,29 @@ function renderTarjaContent(viajes,container,mini=false){
 
 function renderTarjetaViaje(v,mini=false){
   const sinCond=!v.conductorNombre||v.conductorNombre==='Sin asignar';
-  const badge=sinCond?'<span class="badge b-d">Sin conductor</span>':v.esEspecial?'<span class="badge b-w">Especial</span>':'<span class="badge b-ok">OK</span>';
-  return `<div class="tc${v.esEspecial?' especial':''}${sinCond?' sin-cond':''}" onclick="${mini?'':''}" style="cursor:${mini?'default':'pointer'}">
+  const estado=v.estado||'planificado';
+  let estBadge;
+  if(estado==='en_curso')estBadge='<span class="badge b-i">En curso</span>';
+  else if(estado==='finalizado')estBadge='<span class="badge b-ok">Finalizado</span>';
+  else if(sinCond)estBadge='<span class="badge b-d">Sin conductor</span>';
+  else if(v.esEspecial)estBadge='<span class="badge b-w">Especial</span>';
+  else estBadge='<span class="badge b-g">Planificado</span>';
+
+  let acciones='';
+  if(!mini){
+    if(estado==='planificado')acciones+=`<button class="btn btn-sm" onclick="event.stopPropagation();iniciarViaje('${v.id}')">Iniciar</button>`;
+    else if(estado==='en_curso')acciones+=`<button class="btn btn-sm btn-p" onclick="event.stopPropagation();finalizarViaje('${v.id}')">Finalizar</button>`;
+    acciones+=`<button class="btn btn-sm btn-d" onclick="event.stopPropagation();eliminarViaje('${v.id}')" style="padding:2px 6px;font-size:9px;">✕</button>`;
+  }
+
+  let horasInfo='';
+  if(estado==='finalizado'){
+    horasInfo=`<div style="font-size:10px;color:var(--text3);margin-top:4px;">Real: ${v.horaSalidaReal||'—'} → ${v.horaLlegadaReal||'—'} · Descanso req: ${v.descansoReqMin??'—'} min (hasta ${v.descansoHasta||'—'})</div>`;
+  }else if(estado==='en_curso'){
+    horasInfo=`<div style="font-size:10px;color:var(--accent);margin-top:4px;">Inició a las ${v.horaSalidaReal||'—'}</div>`;
+  }
+
+  return `<div class="tc${v.esEspecial?' especial':''}${sinCond?' sin-cond':''}">
     <div class="tc-top">
       <div class="tc-hora">${v.horaSalida||'—'}</div>
       <div class="tc-maq${v.esEspecial?' esp':''}">${v.maquinaNombre||v.maquinaNum?`MAQ ${v.maquinaNum}`:'Sin MAQ'}</div>
@@ -1189,21 +1168,29 @@ function renderTarjetaViaje(v,mini=false){
       <div class="tc-row"><div class="tc-role">COND</div><div><div class="tc-name">${v.conductorNombre||'Sin asignar'}</div><div class="tc-tel">${v.conductorTel||''}</div></div></div>
       <div class="tc-row"><div class="tc-role">ASIST</div><div><div class="tc-name">${v.auxiliarNombre||'Sin auxiliar'}</div><div class="tc-tel">${v.auxiliarTel||''}</div></div></div>
       ${v.relevoConductorNombre?`<div class="tc-relevo"><div class="tc-rlbl">Relevo</div><div class="tc-name" style="font-size:11px;color:var(--text2);">${v.relevoConductorNombre}</div></div>`:''}
+      ${horasInfo}
     </div>
-    <div class="tc-foot">
+    <div class="tc-foot" style="gap:6px;">
       <div class="tc-llegada">→ ${v.horaLlegada||'—'}</div>
-      ${badge}
-      ${!mini?`<button class="btn btn-sm btn-d" onclick="event.stopPropagation();eliminarViaje('${v.id}')" style="padding:2px 6px;font-size:9px;">✕</button>`:''}
+      ${estBadge}
+      <div style="display:flex;gap:4px;">${acciones}</div>
     </div>
   </div>`;
 }
 
 function renderViajesList(viajes,container){
   if(!viajes.length){container.innerHTML='<div style="color:var(--text3);font-size:12px;">Sin viajes</div>';return;}
-  container.innerHTML=viajes.map(v=>`
+  container.innerHTML=viajes.map(v=>{
+    const estado=v.estado||'planificado';
+    const estBadge=estado==='en_curso'?'<span class="badge b-i">En curso</span>':estado==='finalizado'?'<span class="badge b-ok">Finalizado</span>':'<span class="badge b-g">Planificado</span>';
+    let accBtn='';
+    if(estado==='planificado')accBtn=`<button class="btn btn-sm" onclick="iniciarViaje('${v.id}')">Iniciar viaje</button>`;
+    else if(estado==='en_curso')accBtn=`<button class="btn btn-sm btn-p" onclick="finalizarViaje('${v.id}')">Finalizar viaje</button>`;
+    const horasInfo=estado==='finalizado'?`<div style="font-size:11px;color:var(--text3);margin-top:6px;">Hora real: ${v.horaSalidaReal||'—'} → ${v.horaLlegadaReal||'—'} · Descanso requerido: ${v.descansoReqMin??'—'} min (hasta ${v.descansoHasta||'—'})</div>`:'';
+    return `
     <div class="vc${v.esEspecial?' especial':''}">
       <div class="vc-top">
-        <div class="vc-ruta">${v.rutaNombre||'—'} ${v.esEspecial?'<span class="badge b-w">Especial</span>':''}</div>
+        <div class="vc-ruta">${v.rutaNombre||'—'} ${v.esEspecial?'<span class="badge b-w">Especial</span>':''} ${estBadge}</div>
         <div style="display:flex;align-items:center;gap:7px;">
           <span class="badge b-i">${v.maquinaNombre||'Sin MAQ'}</span>
           <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${v.horaSalida||'—'} → ${v.horaLlegada||'—'}</span>
@@ -1215,10 +1202,13 @@ function renderViajesList(viajes,container){
         <div><div class="vc-fl">Relevo</div><div class="vc-fv">${v.relevoConductorNombre||'—'}</div></div>
         <div><div class="vc-fl">Obs.</div><div class="vc-fv" style="font-size:11px;color:var(--text2);">${v.obs||'—'}</div></div>
       </div>
+      ${horasInfo}
       <div class="vc-act">
+        ${accBtn}
         <button class="btn btn-sm btn-d" onclick="eliminarViaje('${v.id}')">Eliminar</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 window.cargarTarjaFecha=async function(){
